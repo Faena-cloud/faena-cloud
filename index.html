@@ -1,10 +1,16 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <title>FAENA CLOUD - Sistema de Gestión</title>
+    <title>FAENA CLOUD - Login</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #003B68 0%, #002244 100%);
@@ -15,61 +21,147 @@
             margin: 0;
             padding: 20px;
         }
-        .container {
+        
+        .login-container {
             background: white;
             border-radius: 20px;
-            padding: 40px;
-            max-width: 500px;
+            padding: 40px 30px;
+            max-width: 400px;
+            width: 100%;
             text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         }
-        h1 {
-            color: #003B68;
-            margin-bottom: 10px;
-        }
-        .faena {
-            color: #667eea;
-            font-size: 14px;
-            letter-spacing: 2px;
+        
+        .logo {
             margin-bottom: 20px;
         }
-        p {
-            color: #666;
-            line-height: 1.6;
+        
+        .logo img {
+            height: 60px;
         }
-        .status {
-            background: #27ae60;
-            color: white;
-            padding: 10px;
-            border-radius: 10px;
-            margin-top: 20px;
+        
+        h1 {
+            color: #003B68;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .empresa {
+            color: #667eea;
+            font-size: 12px;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+        
+        .campo {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .campo label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
             font-size: 14px;
+        }
+        
+        .campo input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #003B68;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .btn-login:hover {
+            background: #002244;
+        }
+        
+        .error-msg {
+            color: #e74c3c;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .status {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #27ae60;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Título GRANDE arriba -->
-        <h1 style="font-size: 38px; margin: 0 0 20px 0;">FAENA CLOUD</h1>
-        
-        <!-- Logo debajo del título -->
-        <img src="Faena_ingenieria.png" alt="FAENA INGENIERÍA" style="height: 80px; margin-bottom: 20px;">
-        
-        <!-- Nombre empresa debajo del logo -->
-        <div class="faena">FAENA INGENIERÍA SPA</div>
-        
-        <!-- Descripción -->
-        <p>Sistema de Gestión de Obras, APUs y Contrataciones</p>
-        
-        <!-- Estado -->
-        <div class="status">
-            ✅ Sistema funcionando correctamente
+    <div class="login-container">
+        <div class="logo">
+            <img src="Faena_ingenieria.png" alt="FAENA INGENIERÍA" onerror="this.style.display='none'">
         </div>
         
-        <!-- Mensaje futuro -->
-        <p style="font-size: 12px; margin-top: 20px;">
-            Próximamente: Login con 3 niveles de acceso
-        </p>
+        <h1>FAENA CLOUD</h1>
+        <div class="empresa">FAENA INGENIERÍA SPA</div>
+        
+        <form id="loginForm">
+            <div class="campo">
+                <label>📧 Correo electrónico</label>
+                <input type="email" id="email" required autocomplete="off" placeholder="usuario@empresa.com">
+            </div>
+            
+            <div class="campo">
+                <label>🔒 Contraseña</label>
+                <input type="password" id="password" required placeholder="Ingrese su contraseña">
+            </div>
+            
+            <button type="submit" class="btn-login">Ingresar</button>
+        </form>
+        
+        <div id="errorMsg" class="error-msg"></div>
+        <div class="status">✅ Sistema funcionando correctamente</div>
     </div>
+    
+    <script>
+        // URL de tu API de Google Apps Script
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxO3IIBFYFGRfhRddko85X23zp9Eq8l8WZGZ_yjuphUDRJb3oi23tc7XXTd2GlZLMkxqw/exec';
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            errorMsg.textContent = '';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+                
+                // Con mode: 'no-cors' no podemos leer la respuesta directamente
+                // Necesitamos modificar el Apps Script para que funcione con GET
+                errorMsg.textContent = 'Conectando con el servidor...';
+                
+            } catch (error) {
+                errorMsg.textContent = 'Error de conexión. Intente más tarde.';
+            }
+        });
+    </script>
 </body>
 </html>
