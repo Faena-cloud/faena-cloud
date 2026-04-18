@@ -259,7 +259,7 @@
     <div class="modulo-container">
         <div class="modulo-header">
             <h2>🗂️ Base de Datos - Catálogo</h2>
-            <button class="btn-volver" onclick="window.location.href='../dashboard.html'">← Volver al Tablero</button>
+            <button class="btn-volver" onclick="window.location.href='dashboard.html'">← Volver al Tablero</button>
         </div>
         
         <div class="tabs">
@@ -311,11 +311,11 @@
         const rolUsuario = sesion.rol || 1;
         
         const PERMISOS = {
-            puedeCrear: true,
-            puedeEditar: true,
-            puedeClonar: true,
-            puedeEliminar: rolUsuario >= 2
-        };
+    puedeCrear: rolUsuario >= 1,
+    puedeEditar: rolUsuario >= 1,
+    puedeClonar: rolUsuario >= 1,
+    puedeEliminar: rolUsuario >= 2
+};
         
         let datos = {
             materiales: [],
