@@ -177,22 +177,28 @@
                 const modulo = btn.dataset.modulo;
                 const contentArea = document.getElementById('contentArea');
                 
-                if (modulo === 'catalogo') {
-                    fetch('modulos/catalogo.html')
-                        .then(response => response.text())
-                        .then(html => {
-                            contentArea.innerHTML = html;
-                            const scripts = contentArea.querySelectorAll('script');
-                            scripts.forEach(script => {
-                                const newScript = document.createElement('script');
-                                newScript.textContent = script.textContent;
-                                document.body.appendChild(newScript);
-                            });
-                        })
-                        .catch(error => {
-                            contentArea.innerHTML = `<div class="welcome-card"><h2>Error</h2><p>No se pudo cargar el módulo: ${error.message}</p></div>`;
-                        });
-                } else {
+               if (modulo === 'catalogo') {
+    // Limpiar scripts anteriores si existen
+    const oldScript = document.getElementById('modulo-script');
+    if (oldScript) oldScript.remove();
+    
+    fetch('modulos/catalogo.html')
+        .then(response => response.text())
+        .then(html => {
+            contentArea.innerHTML = html;
+            // Extraer y ejecutar solo el script del módulo
+            const scriptContent = html.match(/<script>([\s\S]*?)<\/script>/);
+            if (scriptContent && scriptContent[1]) {
+                const newScript = document.createElement('script');
+                newScript.id = 'modulo-script';
+                newScript.textContent = scriptContent[1];
+                document.body.appendChild(newScript);
+            }
+        })
+        .catch(error => {
+            contentArea.innerHTML = `<div class="welcome-card"><h2>Error</h2><p>No se pudo cargar el módulo: ${error.message}</p></div>`;
+        });
+         } else {
                     contentArea.innerHTML = `
                         <div class="welcome-card">
                             <h2>📦 Módulo: ${modulo}</h2>
