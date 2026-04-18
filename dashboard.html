@@ -171,19 +171,38 @@
             document.getElementById('sidebar').classList.toggle('open');
         });
         
-        // Módulos (por ahora solo muestra mensaje)
+        // Módulos
         document.querySelectorAll('.modulo-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const modulo = btn.dataset.modulo;
                 const contentArea = document.getElementById('contentArea');
-                contentArea.innerHTML = `
-                    <div class="welcome-card">
-                        <h2>📦 Módulo: ${modulo}</h2>
-                        <p>Este módulo está en construcción.</p>
-                        <p>Próximamente: CRUD completo, formularios y conexión a base de datos.</p>
-                        <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#003B68; color:white; border:none; border-radius:8px;">Volver</button>
-                    </div>
-                `;
+                
+                if (modulo === 'catalogo') {
+                    fetch('modulos/catalogo.html')
+                        .then(response => response.text())
+                        .then(html => {
+                            contentArea.innerHTML = html;
+                            const scripts = contentArea.querySelectorAll('script');
+                            scripts.forEach(script => {
+                                const newScript = document.createElement('script');
+                                newScript.textContent = script.textContent;
+                                document.body.appendChild(newScript);
+                            });
+                        })
+                        .catch(error => {
+                            contentArea.innerHTML = `<div class="welcome-card"><h2>Error</h2><p>No se pudo cargar el módulo: ${error.message}</p></div>`;
+                        });
+                } else {
+                    contentArea.innerHTML = `
+                        <div class="welcome-card">
+                            <h2>📦 Módulo: ${modulo}</h2>
+                            <p>Este módulo está en construcción.</p>
+                            <p>Próximamente: CRUD completo, formularios y conexión a base de datos.</p>
+                            <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#003B68; color:white; border:none; border-radius:8px;">Volver</button>
+                        </div>
+                    `;
+                }
+                
                 if (window.innerWidth <= 768) {
                     document.getElementById('sidebar').classList.remove('open');
                 }
