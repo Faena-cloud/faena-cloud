@@ -2,38 +2,45 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Base de Datos - FAENA CLOUD</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         h2 { color: #003B68; }
         .btn-volver { background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab-btn { padding: 12px 24px; background: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .tab-btn.active { background: #003B68; color: white; }
-        .tab-content { display: none; background: white; border-radius: 15px; padding: 20px; }
+        .tab-content { display: none; background: white; border-radius: 15px; padding: 20px; overflow-x: auto; }
         .tab-content.active { display: block; }
-        .barra { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .barra input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+        .barra { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .barra input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px; min-width: 200px; }
         .btn-nuevo { background: #27ae60; color: white; border: none; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        .card { background: #f8f9fa; border-radius: 12px; padding: 15px; border: 1px solid #e0e0e0; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-        .card-id { font-family: monospace; font-size: 12px; background: #e0e0e0; padding: 4px 8px; border-radius: 6px; }
+        .tabla-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background: #f8f9fa; font-weight: bold; color: #003B68; position: sticky; top: 0; }
+        tr:hover { background: #f0f7ff; cursor: pointer; }
         .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
         .taller { background: #3498db; color: white; }
         .campo { background: #e67e22; color: white; }
         .ambos { background: #27ae60; color: white; }
-        .card-info { margin: 10px 0; font-size: 13px; color: #555; }
-        .card-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-        .btn-action { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .acciones { white-space: nowrap; }
+        .btn-accion { padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; margin: 0 2px; }
         .btn-edit { background: #3498db; color: white; }
         .btn-clone { background: #27ae60; color: white; }
         .btn-delete { background: #e74c3c; color: white; }
-        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .btn-accion:disabled { opacity: 0.5; cursor: not-allowed; }
+        .paginacion { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .paginacion button { padding: 8px 15px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer; }
+        .paginacion button.active { background: #003B68; color: white; border-color: #003B68; }
+        .paginacion button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .info-pagina { text-align: center; margin-top: 15px; font-size: 12px; color: #666; }
+        .link-proveedor { color: #3498db; text-decoration: underline; cursor: pointer; }
+        .link-proveedor:hover { color: #003B68; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow: auto; }
         .modal-content { background: white; max-width: 500px; margin: 50px auto; border-radius: 20px; padding: 25px; }
         .form-grid { display: grid; gap: 15px; }
         .campo-form { display: flex; flex-direction: column; }
@@ -42,14 +49,16 @@
         .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .btn-guardar { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
         .btn-cancelar { background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
-        @media (min-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } .form-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px) {
+            th, td { padding: 8px 6px; font-size: 12px; }
+            .btn-accion { padding: 3px 6px; font-size: 10px; }
+        }
     </style>
 </head>
 <body>
 <div class="modulo-container">
     <div class="header">
-        <h2>🗂️ Base de Datos - Catálogo (Cloud)</h2>
+        <h2>🗂️ Base de Datos - Catálogo</h2>
         <button class="btn-volver" onclick="window.location.href='dashboard.html'">← Volver al Tablero</button>
     </div>
     <div class="tabs">
@@ -58,16 +67,48 @@
         <button class="tab-btn" data-tab="manoObra">👷 Mano de Obra</button>
     </div>
     <div id="tab-materiales" class="tab-content active">
-        <div class="barra"><input type="text" id="buscarMateriales" placeholder="🔍 Buscar material..."><button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button></div>
-        <div id="listaMateriales" class="grid"></div>
+        <div class="barra">
+            <input type="text" id="buscarMateriales" placeholder="🔍 Buscar por nombre o proveedor...">
+            <button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button>
+        </div>
+        <div class="tabla-container">
+            <table id="tablaMateriales">
+                <thead>
+                    <tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="tbodyMateriales"></tbody>
+            </table>
+        </div>
+        <div id="paginacionMateriales" class="paginacion"></div>
+        <div id="infoPaginaMateriales" class="info-pagina"></div>
     </div>
     <div id="tab-equipos" class="tab-content">
-        <div class="barra"><input type="text" id="buscarEquipos" placeholder="🔍 Buscar equipo..."><button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button></div>
-        <div id="listaEquipos" class="grid"></div>
+        <div class="barra">
+            <input type="text" id="buscarEquipos" placeholder="🔍 Buscar por nombre o proveedor...">
+            <button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button>
+        </div>
+        <div class="tabla-container">
+            <table id="tablaEquipos">
+                <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead>
+                <tbody id="tbodyEquipos"></tbody>
+            </table>
+        </div>
+        <div id="paginacionEquipos" class="paginacion"></div>
+        <div id="infoPaginaEquipos" class="info-pagina"></div>
     </div>
     <div id="tab-manoObra" class="tab-content">
-        <div class="barra"><input type="text" id="buscarManoObra" placeholder="🔍 Buscar mano de obra..."><button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button></div>
-        <div id="listaManoObra" class="grid"></div>
+        <div class="barra">
+            <input type="text" id="buscarManoObra" placeholder="🔍 Buscar por nombre...">
+            <button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button>
+        </div>
+        <div class="tabla-container">
+            <table id="tablaManoObra">
+                <thead><tr><th>ID</th><th>Descripción</th><th>Precio/hora</th><th>Ubicación</th><th>Acciones</th></tr></thead>
+                <tbody id="tbodyManoObra"></tbody>
+            </table>
+        </div>
+        <div id="paginacionManoObra" class="paginacion"></div>
+        <div id="infoPaginaManoObra" class="info-pagina"></div>
     </div>
 </div>
 <div id="modalFormulario" class="modal"><div class="modal-content"><h3 id="modalTitulo">Nuevo Registro</h3><form id="formRegistro"><div id="formCampos" class="form-grid"></div><div class="modal-buttons"><button type="button" id="btnCancelar" class="btn-cancelar">Cancelar</button><button type="submit" class="btn-guardar">Guardar</button></div></form></div></div>
@@ -83,6 +124,8 @@
     let tipoActual = 'materiales';
     let editandoId = null;
     let contadores = { materiales: 1, equipos: 1, manoObra: 1 };
+    let paginaActual = 1;
+    const registrosPorPagina = 15;
     
     function generarId(tipo) {
         const prefijos = { materiales: 'MAT', equipos: 'EQU', manoObra: 'MDO' };
@@ -96,7 +139,7 @@
             const result = await response.json();
             if (result.success) {
                 datos[tipoActual] = result.data;
-                const ids = result.data.map(r => parseInt(r.id.split('-')[1]) || 0);
+                const ids = result.data.map(r => parseInt(r.id?.split('-')[1]) || 0);
                 const maxId = Math.max(...ids, 0);
                 contadores[tipoActual] = maxId + 1;
             } else {
@@ -106,7 +149,8 @@
             console.error('Error al cargar:', e);
             datos[tipoActual] = [];
         }
-        renderizar();
+        paginaActual = 1;
+        renderizarTabla();
     }
     
     async function guardarRegistroEnCloud(registro) {
@@ -121,6 +165,7 @@
     }
     
     async function eliminarRegistroEnCloud(id) {
+        if(!PERMISOS.puedeEliminar) return false;
         try {
             const response = await fetch(`${API_URL}?accion=eliminar&tipo=${tipoActual}&id=${id}`);
             const result = await response.json();
@@ -131,22 +176,96 @@
         }
     }
     
-    function renderizar() {
-        let lista = datos[tipoActual];
+    function filtrarDatos() {
         const busca = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`)?.value.toLowerCase() || '';
-        if(busca) lista = lista.filter(i => i.descripcion?.toLowerCase().includes(busca) || i.proveedor?.toLowerCase().includes(busca));
-        const cont = document.getElementById(`lista${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-        if(!cont) return;
-        if(!lista.length) { cont.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">No hay registros. Haz clic en "+ Nuevo" para agregar.</div>'; return; }
-        cont.innerHTML = lista.map(i => `<div class="card"><div class="card-header"><h3>${i.descripcion||'Sin descripción'}</h3><span class="card-id">${i.id}</span></div><div class="card-info">${i.proveedor?`<p>🏭 Proveedor: ${i.proveedor}</p>`:''}<p>📦 Unidad: ${i.unidad||'N/A'}</p><p>💰 Precio: $${i.precio||0}</p>${i.ubicacion?`<p><span class="badge ${i.ubicacion}">${i.ubicacion==='taller'?'🔧 Taller':i.ubicacion==='campo'?'🌾 Campo':'🔄 Ambos'}</span></p>`:''}</div><div class="card-actions"><button class="btn-action btn-edit" onclick="window.editarRegistro('${i.id}')" ${!PERMISOS.puedeEditar?'disabled':''}>✏️ Editar</button><button class="btn-action btn-clone" onclick="window.clonarRegistro('${i.id}')" ${!PERMISOS.puedeClonar?'disabled':''}>📋 Clonar</button><button class="btn-action btn-delete" onclick="window.eliminarRegistro('${i.id}')" ${!PERMISOS.puedeEliminar?'disabled':''}>🗑️ Eliminar</button></div></div>`).join('');
+        if(!busca) return datos[tipoActual];
+        return datos[tipoActual].filter(item => 
+            item.descripcion?.toLowerCase().includes(busca) || 
+            item.proveedor?.toLowerCase().includes(busca)
+        );
     }
+    
+    function renderizarTabla() {
+        const filtrados = filtrarDatos();
+        const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
+        const inicio = (paginaActual - 1) * registrosPorPagina;
+        const paginados = filtrados.slice(inicio, inicio + registrosPorPagina);
+        
+        const tbody = document.getElementById(`tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+        if(!tbody) return;
+        
+        if(paginados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">No hay registros. Haz clic en "+ Nuevo" para agregar.</td></tr>';
+        } else {
+            tbody.innerHTML = paginados.map(item => {
+                let row = `<tr data-id="${item.id}">`;
+                row += `<td>${item.id}</td>`;
+                row += `<td>${item.descripcion || ''}</td>`;
+                if(tipoActual === 'manoObra') {
+                    row += `<td>$${item.precio || 0}</td>`;
+                    row += `<td><span class="badge ${item.ubicacion}">${item.ubicacion === 'taller' ? '🔧 Taller' : item.ubicacion === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
+                } else {
+                    row += `<td>${item.unidad || ''}</td>`;
+                    row += `<td>$${item.precio || 0}</td>`;
+                    if(tipoActual === 'materiales') {
+                        const proveedor = item.proveedor || '';
+                        const esLink = proveedor.match(/^https?:\/\//i);
+                        row += `<td>${esLink ? `<a href="${proveedor}" target="_blank" class="link-proveedor" ondblclick="event.stopPropagation()">${proveedor}</a>` : proveedor}</td>`;
+                    } else {
+                        row += `<td><span class="badge ${item.ubicacion}">${item.ubicacion === 'taller' ? '🔧 Taller' : item.ubicacion === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
+                    }
+                }
+                row += `<td class="acciones">
+                    <button class="btn-accion btn-edit" onclick="event.stopPropagation(); window.editarRegistro('${item.id}')" ${!PERMISOS.puedeEditar?'disabled':''}>✏️</button>
+                    <button class="btn-accion btn-clone" onclick="event.stopPropagation(); window.clonarRegistro('${item.id}')" ${!PERMISOS.puedeClonar?'disabled':''}>📋</button>
+                    <button class="btn-accion btn-delete" onclick="event.stopPropagation(); window.eliminarRegistro('${item.id}')" ${!PERMISOS.puedeEliminar?'disabled':''}>🗑️</button>
+                </td>`;
+                row += `</tr>`;
+                return row;
+            }).join('');
+        }
+        
+        // Paginación
+        const pagDiv = document.getElementById(`paginacion${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+        const infoDiv = document.getElementById(`infoPagina${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+        if(pagDiv) {
+            pagDiv.innerHTML = `
+                <button onclick="cambiarPagina(1)" ${paginaActual === 1 ? 'disabled' : ''}>⏮ Primera</button>
+                <button onclick="cambiarPagina(${paginaActual-1})" ${paginaActual === 1 ? 'disabled' : ''}>◀ Anterior</button>
+                <span style="padding: 8px 15px;">Página ${paginaActual} de ${totalPaginas || 1}</span>
+                <button onclick="cambiarPagina(${paginaActual+1})" ${paginaActual === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Siguiente ▶</button>
+                <button onclick="cambiarPagina(${totalPaginas})" ${paginaActual === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Última ⏩</button>
+            `;
+        }
+        if(infoDiv) {
+            infoDiv.textContent = `Mostrando ${inicio+1} a ${Math.min(inicio+registrosPorPagina, filtrados.length)} de ${filtrados.length} registros`;
+        }
+        
+        // Doble clic para editar
+        document.querySelectorAll(`#tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)} tr`).forEach(row => {
+            row.ondblclick = (e) => {
+                if(e.target.tagName === 'A') return;
+                const id = row.dataset.id;
+                if(id && PERMISOS.puedeEditar) window.editarRegistro(id);
+            };
+        });
+    }
+    
+    window.cambiarPagina = (pagina) => {
+        const filtrados = filtrarDatos();
+        const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
+        if(pagina >= 1 && pagina <= totalPaginas) {
+            paginaActual = pagina;
+            renderizarTabla();
+        }
+    };
     
     function abrirFormulario(tipo, reg=null) {
         tipoActual=tipo; editandoId=reg?.id||null;
         const modal=document.getElementById('modalFormulario'), titulo=document.getElementById('modalTitulo'), camposDiv=document.getElementById('formCampos');
         titulo.textContent=reg?`✏️ Editar ${tipo.slice(0,-1)}`:`➕ Nuevo ${tipo.slice(0,-1)}`;
         let campos=[];
-        if(tipo==='materiales') campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'unidad',label:'Unidad (kg, m3, saco)',type:'text',req:true},{name:'precio',label:'Precio unitario ($)',type:'number',req:true},{name:'proveedor',label:'Proveedor',type:'text'}];
+        if(tipo==='materiales') campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'unidad',label:'Unidad (kg, m3, saco)',type:'text',req:true},{name:'precio',label:'Precio unitario ($)',type:'number',req:true},{name:'proveedor',label:'Proveedor (URL o texto)',type:'text'}];
         else if(tipo==='equipos') campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'unidad',label:'Unidad (hora, día)',type:'text',req:true},{name:'precio',label:'Precio ($)',type:'number',req:true},{name:'ubicacion',label:'Ubicación',type:'select',opts:['taller','campo','ambos'],req:true}];
         else campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'precio',label:'Precio por hora ($)',type:'number',req:true},{name:'ubicacion',label:'Ubicación',type:'select',opts:['taller','campo','ambos'],req:true}];
         camposDiv.innerHTML=campos.map(c=>`<div class="campo-form"><label>${c.label}</label>${c.type==='select'?`<select name="${c.name}" ${c.req?'required':''}><option value="">Seleccionar</option>${c.opts.map(o=>`<option value="${o}" ${reg&&reg[c.name]===o?'selected':''}>${o==='taller'?'🔧 Taller':o==='campo'?'🌾 Campo':'🔄 Ambos'}</option>`).join('')}</select>`:`<input type="${c.type}" name="${c.name}" value="${reg?reg[c.name]||'':''}" ${c.req?'required':''}>`}</div>`).join('');
@@ -186,8 +305,8 @@
     document.getElementById('btnNuevoEquipo')?.addEventListener('click',()=>abrirFormulario('equipos'));
     document.getElementById('btnNuevoManoObra')?.addEventListener('click',()=>abrirFormulario('manoObra'));
     
-    document.querySelectorAll('.tab-btn').forEach(btn=>{ btn.onclick=()=>{ document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active'); tipoActual=btn.dataset.tab; cargarDatos(); const inp=document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase()+tipoActual.slice(1)}`); if(inp) inp.oninput=()=>renderizar(); }; });
-    document.querySelectorAll('.barra input').forEach(i=>{ if(i) i.oninput=()=>renderizar(); });
+    document.querySelectorAll('.tab-btn').forEach(btn=>{ btn.onclick=()=>{ document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active'); tipoActual=btn.dataset.tab; cargarDatos(); const inp=document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase()+tipoActual.slice(1)}`); if(inp) inp.oninput=()=>renderizarTabla(); }; });
+    document.querySelectorAll('.barra input').forEach(i=>{ if(i) i.oninput=()=>{ paginaActual=1; renderizarTabla(); }; });
     
     cargarDatos();
 })();
