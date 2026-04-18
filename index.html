@@ -5,12 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #003B68 0%, #002244 100%);
@@ -21,7 +16,6 @@
             margin: 0;
             padding: 20px;
         }
-        
         .login-container {
             background: white;
             border-radius: 20px;
@@ -31,90 +25,18 @@
             text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
         }
-        
-        .logo {
-            margin-bottom: 20px;
-        }
-        
-        .logo img {
-            height: 60px;
-        }
-        
-        h1 {
-            color: #003B68;
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-        
-        .empresa {
-            color: #667eea;
-            font-size: 12px;
-            letter-spacing: 2px;
-            margin-bottom: 30px;
-        }
-        
-        .campo {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        
-        .campo label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-            font-size: 14px;
-        }
-        
-        .campo input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-        }
-        
-        .btn-login {
-            width: 100%;
-            padding: 14px;
-            background: #003B68;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        
-        .btn-login:hover {
-            background: #002244;
-        }
-        
-        .error-msg {
-            color: #e74c3c;
-            margin-top: 15px;
-            font-size: 14px;
-        }
-        
-        .status {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #27ae60;
-        }
-        
-        .recordar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .recordar label {
-            cursor: pointer;
-            font-size: 14px;
-            color: #555;
-        }
+        .logo img { height: 60px; margin-bottom: 20px; }
+        h1 { color: #003B68; font-size: 28px; margin-bottom: 5px; }
+        .empresa { color: #667eea; font-size: 12px; letter-spacing: 2px; margin-bottom: 30px; }
+        .campo { margin-bottom: 20px; text-align: left; }
+        .campo label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px; }
+        .campo input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+        .btn-login { width: 100%; padding: 14px; background: #003B68; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-login:hover { background: #002244; }
+        .error-msg { color: #e74c3c; margin-top: 15px; font-size: 14px; }
+        .status { margin-top: 20px; font-size: 12px; color: #27ae60; }
+        .recordar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .recordar label { cursor: pointer; font-size: 14px; color: #555; }
     </style>
 </head>
 <body>
@@ -122,7 +44,6 @@
         <div class="logo">
             <img src="Faena_ingenieria.png" alt="FAENA INGENIERÍA" onerror="this.style.display='none'">
         </div>
-        
         <h1>FAENA CLOUD</h1>
         <div class="empresa">FAENA INGENIERÍA SPA</div>
         
@@ -131,18 +52,15 @@
                 <label>📧 Correo electrónico</label>
                 <input type="email" id="email" required autocomplete="off" placeholder="usuario@empresa.com">
             </div>
-            
             <div class="campo">
                 <label>🔒 Contraseña</label>
                 <input type="password" id="password" required placeholder="Ingrese su contraseña">
             </div>
-            
             <div class="recordar">
                 <label>
                     <input type="checkbox" id="recordarUsuario"> Recordar usuario
                 </label>
             </div>
-            
             <button type="submit" class="btn-login">Ingresar</button>
         </form>
         
@@ -151,51 +69,55 @@
     </div>
     
     <script>
-      const API_URL = 'https://script.google.com/macros/s/TU_NUEVA_URL_AQUI/exec';
-
-const emailGuardado = localStorage.getItem('faena_email');
-if (emailGuardado) {
-    document.getElementById('email').value = emailGuardado;
-    document.getElementById('recordarUsuario').checked = true;
-}
-
-document.getElementById('loginForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const recordar = document.getElementById('recordarUsuario').checked;
-    const errorMsg = document.getElementById('errorMsg');
-    
-    errorMsg.textContent = '';
-    
-    if (recordar) {
-        localStorage.setItem('faena_email', email);
-    } else {
-        localStorage.removeItem('faena_email');
-    }
-    
-    // Usar JSONP para evitar CORS
-    const script = document.createElement('script');
-    const callbackName = 'jsonp_callback_' + Date.now();
-    
-    window[callbackName] = function(data) {
-        delete window[callbackName];
-        document.body.removeChild(script);
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzM9regNGT12CUP4jM2ihCJFE_MAsT3RfC_KllIO6Y8zBMbawxyx7go-xL_LZJJI5jt5g/exec';
         
-        if (data.success) {
-            sessionStorage.setItem('faena_sesion', JSON.stringify({
-                email: data.email,
-                nombre: data.nombre,
-                rol: data.rol
-            }));
-            window.location.href = 'dashboard.html';
-        } else {
-            errorMsg.textContent = data.error || 'Usuario o contraseña incorrectos';
+        const emailGuardado = localStorage.getItem('faena_email');
+        if (emailGuardado) {
+            document.getElementById('email').value = emailGuardado;
+            document.getElementById('recordarUsuario').checked = true;
         }
-    };
-    
-    const url = `${API_URL}?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&callback=${callbackName}`;
-    script.src = url;
-    document.body.appendChild(script);
-});
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const recordar = document.getElementById('recordarUsuario').checked;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            errorMsg.textContent = '';
+            
+            if (!email || !password) {
+                errorMsg.textContent = 'Ingrese email y contraseña';
+                return;
+            }
+            
+            if (recordar) {
+                localStorage.setItem('faena_email', email);
+            } else {
+                localStorage.removeItem('faena_email');
+            }
+            
+            try {
+                const url = `${API_URL}?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    sessionStorage.setItem('faena_sesion', JSON.stringify({
+                        email: data.email,
+                        nombre: data.nombre,
+                        rol: data.rol
+                    }));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    errorMsg.textContent = data.error || 'Usuario o contraseña incorrectos';
+                }
+            } catch (error) {
+                errorMsg.textContent = 'Error de conexión. Verifique e intente de nuevo.';
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
