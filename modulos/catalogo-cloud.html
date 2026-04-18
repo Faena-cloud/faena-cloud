@@ -1,1 +1,196 @@
-
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Datos - FAENA CLOUD</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+        h2 { color: #003B68; }
+        .btn-volver { background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { padding: 12px 24px; background: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-btn.active { background: #003B68; color: white; }
+        .tab-content { display: none; background: white; border-radius: 15px; padding: 20px; }
+        .tab-content.active { display: block; }
+        .barra { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .barra input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+        .btn-nuevo { background: #27ae60; color: white; border: none; padding: 12px 24px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        .card { background: #f8f9fa; border-radius: 12px; padding: 15px; border: 1px solid #e0e0e0; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+        .card-id { font-family: monospace; font-size: 12px; background: #e0e0e0; padding: 4px 8px; border-radius: 6px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+        .taller { background: #3498db; color: white; }
+        .campo { background: #e67e22; color: white; }
+        .ambos { background: #27ae60; color: white; }
+        .card-info { margin: 10px 0; font-size: 13px; color: #555; }
+        .card-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+        .btn-action { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-edit { background: #3498db; color: white; }
+        .btn-clone { background: #27ae60; color: white; }
+        .btn-delete { background: #e74c3c; color: white; }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { background: white; max-width: 500px; margin: 50px auto; border-radius: 20px; padding: 25px; }
+        .form-grid { display: grid; gap: 15px; }
+        .campo-form { display: flex; flex-direction: column; }
+        .campo-form label { font-weight: bold; margin-bottom: 5px; font-size: 13px; }
+        .campo-form input, .campo-form select { padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-guardar { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-cancelar { background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        @media (min-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } .form-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+    </style>
+</head>
+<body>
+<div class="modulo-container">
+    <div class="header">
+        <h2>🗂️ Base de Datos - Catálogo (Cloud)</h2>
+        <button class="btn-volver" onclick="window.location.href='dashboard.html'">← Volver al Tablero</button>
+    </div>
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="materiales">📦 Materiales</button>
+        <button class="tab-btn" data-tab="equipos">🔧 Equipos</button>
+        <button class="tab-btn" data-tab="manoObra">👷 Mano de Obra</button>
+    </div>
+    <div id="tab-materiales" class="tab-content active">
+        <div class="barra"><input type="text" id="buscarMateriales" placeholder="🔍 Buscar material..."><button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button></div>
+        <div id="listaMateriales" class="grid"></div>
+    </div>
+    <div id="tab-equipos" class="tab-content">
+        <div class="barra"><input type="text" id="buscarEquipos" placeholder="🔍 Buscar equipo..."><button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button></div>
+        <div id="listaEquipos" class="grid"></div>
+    </div>
+    <div id="tab-manoObra" class="tab-content">
+        <div class="barra"><input type="text" id="buscarManoObra" placeholder="🔍 Buscar mano de obra..."><button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button></div>
+        <div id="listaManoObra" class="grid"></div>
+    </div>
+</div>
+<div id="modalFormulario" class="modal"><div class="modal-content"><h3 id="modalTitulo">Nuevo Registro</h3><form id="formRegistro"><div id="formCampos" class="form-grid"></div><div class="modal-buttons"><button type="button" id="btnCancelar" class="btn-cancelar">Cancelar</button><button type="submit" class="btn-guardar">Guardar</button></div></form></div></div>
+<script>
+(function(){
+    const API_URL = 'https://script.google.com/macros/s/AKfycbw_7Z34_fealM7_5qcFMCqxndFUhFZ2ZuHtnvBtMcOSDKrAAVKpNHJQvIjpbC_2B71Ydg/exec';
+    
+    const sesionData = sessionStorage.getItem('faena_sesion');
+    const rolUsuario = sesionData ? JSON.parse(sesionData).rol : 1;
+    const PERMISOS = { puedeCrear: true, puedeEditar: true, puedeClonar: true, puedeEliminar: rolUsuario >= 2 };
+    
+    let datos = { materiales: [], equipos: [], manoObra: [] };
+    let tipoActual = 'materiales';
+    let editandoId = null;
+    let contadores = { materiales: 1, equipos: 1, manoObra: 1 };
+    
+    function generarId(tipo) {
+        const prefijos = { materiales: 'MAT', equipos: 'EQU', manoObra: 'MDO' };
+        const num = contadores[tipo].toString().padStart(3, '0');
+        return `${prefijos[tipo]}-${num}`;
+    }
+    
+    async function cargarDatos() {
+        try {
+            const response = await fetch(`${API_URL}?accion=listar&tipo=${tipoActual}`);
+            const result = await response.json();
+            if (result.success) {
+                datos[tipoActual] = result.data;
+                const ids = result.data.map(r => parseInt(r.id.split('-')[1]) || 0);
+                const maxId = Math.max(...ids, 0);
+                contadores[tipoActual] = maxId + 1;
+            } else {
+                datos[tipoActual] = [];
+            }
+        } catch(e) {
+            console.error('Error al cargar:', e);
+            datos[tipoActual] = [];
+        }
+        renderizar();
+    }
+    
+    async function guardarRegistroEnCloud(registro) {
+        try {
+            const response = await fetch(`${API_URL}?accion=guardar&tipo=${tipoActual}&datos=${JSON.stringify(registro)}`);
+            const result = await response.json();
+            return result.success;
+        } catch(e) {
+            console.error('Error al guardar:', e);
+            return false;
+        }
+    }
+    
+    async function eliminarRegistroEnCloud(id) {
+        try {
+            const response = await fetch(`${API_URL}?accion=eliminar&tipo=${tipoActual}&id=${id}`);
+            const result = await response.json();
+            return result.success;
+        } catch(e) {
+            console.error('Error al eliminar:', e);
+            return false;
+        }
+    }
+    
+    function renderizar() {
+        let lista = datos[tipoActual];
+        const busca = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`)?.value.toLowerCase() || '';
+        if(busca) lista = lista.filter(i => i.descripcion?.toLowerCase().includes(busca) || i.proveedor?.toLowerCase().includes(busca));
+        const cont = document.getElementById(`lista${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+        if(!cont) return;
+        if(!lista.length) { cont.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">No hay registros. Haz clic en "+ Nuevo" para agregar.</div>'; return; }
+        cont.innerHTML = lista.map(i => `<div class="card"><div class="card-header"><h3>${i.descripcion||'Sin descripción'}</h3><span class="card-id">${i.id}</span></div><div class="card-info">${i.proveedor?`<p>🏭 Proveedor: ${i.proveedor}</p>`:''}<p>📦 Unidad: ${i.unidad||'N/A'}</p><p>💰 Precio: $${i.precio||0}</p>${i.ubicacion?`<p><span class="badge ${i.ubicacion}">${i.ubicacion==='taller'?'🔧 Taller':i.ubicacion==='campo'?'🌾 Campo':'🔄 Ambos'}</span></p>`:''}</div><div class="card-actions"><button class="btn-action btn-edit" onclick="window.editarRegistro('${i.id}')" ${!PERMISOS.puedeEditar?'disabled':''}>✏️ Editar</button><button class="btn-action btn-clone" onclick="window.clonarRegistro('${i.id}')" ${!PERMISOS.puedeClonar?'disabled':''}>📋 Clonar</button><button class="btn-action btn-delete" onclick="window.eliminarRegistro('${i.id}')" ${!PERMISOS.puedeEliminar?'disabled':''}>🗑️ Eliminar</button></div></div>`).join('');
+    }
+    
+    function abrirFormulario(tipo, reg=null) {
+        tipoActual=tipo; editandoId=reg?.id||null;
+        const modal=document.getElementById('modalFormulario'), titulo=document.getElementById('modalTitulo'), camposDiv=document.getElementById('formCampos');
+        titulo.textContent=reg?`✏️ Editar ${tipo.slice(0,-1)}`:`➕ Nuevo ${tipo.slice(0,-1)}`;
+        let campos=[];
+        if(tipo==='materiales') campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'unidad',label:'Unidad (kg, m3, saco)',type:'text',req:true},{name:'precio',label:'Precio unitario ($)',type:'number',req:true},{name:'proveedor',label:'Proveedor',type:'text'}];
+        else if(tipo==='equipos') campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'unidad',label:'Unidad (hora, día)',type:'text',req:true},{name:'precio',label:'Precio ($)',type:'number',req:true},{name:'ubicacion',label:'Ubicación',type:'select',opts:['taller','campo','ambos'],req:true}];
+        else campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'precio',label:'Precio por hora ($)',type:'number',req:true},{name:'ubicacion',label:'Ubicación',type:'select',opts:['taller','campo','ambos'],req:true}];
+        camposDiv.innerHTML=campos.map(c=>`<div class="campo-form"><label>${c.label}</label>${c.type==='select'?`<select name="${c.name}" ${c.req?'required':''}><option value="">Seleccionar</option>${c.opts.map(o=>`<option value="${o}" ${reg&&reg[c.name]===o?'selected':''}>${o==='taller'?'🔧 Taller':o==='campo'?'🌾 Campo':'🔄 Ambos'}</option>`).join('')}</select>`:`<input type="${c.type}" name="${c.name}" value="${reg?reg[c.name]||'':''}" ${c.req?'required':''}>`}</div>`).join('');
+        modal.style.display='block';
+    }
+    
+    async function guardarForm(e) { 
+        e.preventDefault(); 
+        const fd=new FormData(document.getElementById('formRegistro')); 
+        const nuevo={}; 
+        for(let[k,v] of fd) nuevo[k]=v; 
+        if(editandoId){ 
+            const idx=datos[tipoActual].findIndex(i=>i.id===editandoId); 
+            if(idx!==-1){ 
+                nuevo.id=editandoId; 
+                datos[tipoActual][idx]=nuevo; 
+                await guardarRegistroEnCloud(nuevo);
+            } 
+        } else { 
+            nuevo.id=generarId(tipoActual); 
+            datos[tipoActual].push(nuevo); 
+            await guardarRegistroEnCloud(nuevo);
+            contadores[tipoActual]++;
+        } 
+        await cargarDatos();
+        document.getElementById('modalFormulario').style.display='none'; 
+        editandoId=null; 
+    }
+    
+    window.editarRegistro=(id)=>{ const reg=datos[tipoActual].find(i=>i.id===id); if(reg) abrirFormulario(tipoActual,reg); };
+    window.clonarRegistro=async (id)=>{ if(!PERMISOS.puedeClonar) return alert('Sin permiso'); const orig=datos[tipoActual].find(i=>i.id===id); if(orig){ const clon=JSON.parse(JSON.stringify(orig)); delete clon.id; clon.descripcion+=' (Copia)'; clon.id=generarId(tipoActual); await guardarRegistroEnCloud(clon); await cargarDatos(); alert('Clonado'); } };
+    window.eliminarRegistro=async (id)=>{ if(!PERMISOS.puedeEliminar) return alert('Sin permiso para eliminar'); if(confirm('¿Eliminar?')){ await eliminarRegistroEnCloud(id); await cargarDatos(); } };
+    
+    document.getElementById('formRegistro')?.addEventListener('submit',guardarForm);
+    document.getElementById('btnCancelar')?.addEventListener('click',()=>{ document.getElementById('modalFormulario').style.display='none'; editandoId=null; });
+    document.getElementById('btnNuevoMaterial')?.addEventListener('click',()=>abrirFormulario('materiales'));
+    document.getElementById('btnNuevoEquipo')?.addEventListener('click',()=>abrirFormulario('equipos'));
+    document.getElementById('btnNuevoManoObra')?.addEventListener('click',()=>abrirFormulario('manoObra'));
+    
+    document.querySelectorAll('.tab-btn').forEach(btn=>{ btn.onclick=()=>{ document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active'); tipoActual=btn.dataset.tab; cargarDatos(); const inp=document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase()+tipoActual.slice(1)}`); if(inp) inp.oninput=()=>renderizar(); }; });
+    document.querySelectorAll('.barra input').forEach(i=>{ if(i) i.oninput=()=>renderizar(); });
+    
+    cargarDatos();
+})();
+</script>
+</body>
+</html>
