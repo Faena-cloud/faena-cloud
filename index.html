@@ -151,7 +151,7 @@
     </div>
     
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzM9regNGT12CUP4jM2ihCJFE_MAsT3RfC_KllIO6Y8zBMbawxyx7go-xL_LZJJI5jt5g/exec';
+      const API_URL = 'https://script.google.com/macros/s/TU_NUEVA_URL_AQUI/exec';
 
 const emailGuardado = localStorage.getItem('faena_email');
 if (emailGuardado) {
@@ -159,7 +159,7 @@ if (emailGuardado) {
     document.getElementById('recordarUsuario').checked = true;
 }
 
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+document.getElementById('loginForm').addEventListener('submit', (e) => {
     e.preventDefault();
     
     const email = document.getElementById('email').value;
@@ -175,11 +175,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         localStorage.removeItem('faena_email');
     }
     
-    try {
-        // Cambio clave: usar GET en lugar de POST
-        const url = `${API_URL}?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
-        const response = await fetch(url);
-        const data = await response.json();
+    // Usar JSONP para evitar CORS
+    const script = document.createElement('script');
+    const callbackName = 'jsonp_callback_' + Date.now();
+    
+    window[callbackName] = function(data) {
+        delete window[callbackName];
+        document.body.removeChild(script);
         
         if (data.success) {
             sessionStorage.setItem('faena_sesion', JSON.stringify({
@@ -191,8 +193,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         } else {
             errorMsg.textContent = data.error || 'Usuario o contraseña incorrectos';
         }
-    } catch (error) {
-        errorMsg.textContent = 'Error de conexión. Intente más tarde.';
-        console.error('Error:', error);
-    }
+    };
+    
+    const url = `${API_URL}?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}&callback=${callbackName}`;
+    script.src = url;
+    document.body.appendChild(script);
 });
