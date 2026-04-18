@@ -70,7 +70,7 @@
                 const modulo = btn.dataset.modulo;
                 const area = document.getElementById('contentArea');
                 if (modulo === 'catalogo') {
-                    fetch('modulos/catalogo.html')
+                    fetch('modulos/catalogo-cloud.html')
                         .then(r => r.text())
                         .then(html => {
                             area.innerHTML = html;
