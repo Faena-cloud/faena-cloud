@@ -152,56 +152,47 @@
     
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbzM9regNGT12CUP4jM2ihCJFE_MAsT3RfC_KllIO6Y8zBMbawxyx7go-xL_LZJJI5jt5g/exec';
+
+const emailGuardado = localStorage.getItem('faena_email');
+if (emailGuardado) {
+    document.getElementById('email').value = emailGuardado;
+    document.getElementById('recordarUsuario').checked = true;
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const recordar = document.getElementById('recordarUsuario').checked;
+    const errorMsg = document.getElementById('errorMsg');
+    
+    errorMsg.textContent = '';
+    
+    if (recordar) {
+        localStorage.setItem('faena_email', email);
+    } else {
+        localStorage.removeItem('faena_email');
+    }
+    
+    try {
+        // Cambio clave: usar GET en lugar de POST
+        const url = `${API_URL}?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+        const response = await fetch(url);
+        const data = await response.json();
         
-        // Cargar usuario guardado
-        const emailGuardado = localStorage.getItem('faena_email');
-        if (emailGuardado) {
-            document.getElementById('email').value = emailGuardado;
-            document.getElementById('recordarUsuario').checked = true;
+        if (data.success) {
+            sessionStorage.setItem('faena_sesion', JSON.stringify({
+                email: data.email,
+                nombre: data.nombre,
+                rol: data.rol
+            }));
+            window.location.href = 'dashboard.html';
+        } else {
+            errorMsg.textContent = data.error || 'Usuario o contraseña incorrectos';
         }
-        
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const recordar = document.getElementById('recordarUsuario').checked;
-            const errorMsg = document.getElementById('errorMsg');
-            
-            errorMsg.textContent = '';
-            
-            // Guardar o borrar email
-            if (recordar) {
-                localStorage.setItem('faena_email', email);
-            } else {
-                localStorage.removeItem('faena_email');
-            }
-            
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email: email, password: password })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    sessionStorage.setItem('faena_sesion', JSON.stringify({
-                        email: data.email,
-                        nombre: data.nombre,
-                        rol: data.rol
-                    }));
-                    window.location.href = 'dashboard.html';
-                } else {
-                    errorMsg.textContent = data.error || 'Usuario o contraseña incorrectos';
-                }
-            } catch (error) {
-                errorMsg.textContent = 'Error de conexión. Intente más tarde.';
-            }
-        });
-    </script>
-</body>
-</html>
+    } catch (error) {
+        errorMsg.textContent = 'Error de conexión. Intente más tarde.';
+        console.error('Error:', error);
+    }
+});
