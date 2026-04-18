@@ -1,131 +1,40 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <title>FAENA CLOUD - Dashboard</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>FAENA CLOUD - Dashboard</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-        }
-        
-        .top-bar {
-            background: #003B68;
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .logo img { height: 40px; }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .role-badge {
-            background: #27ae60;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
-        
-        .btn-logout {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        
-        .dashboard-container {
-            display: flex;
-            min-height: calc(100vh - 70px);
-        }
-        
-        .sidebar {
-            width: 280px;
-            background: white;
-            border-right: 1px solid #e0e0e0;
-        }
-        
-        .modulo-btn {
-            width: 100%;
-            padding: 15px 20px;
-            text-align: left;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            border-left: 3px solid transparent;
-        }
-        
-        .modulo-btn:hover {
-            background: #f0f0f0;
-            border-left-color: #003B68;
-        }
-        
-        .content-area {
-            flex: 1;
-            padding: 20px;
-        }
-        
-        .welcome-card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-        }
-        
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; }
+        .top-bar { background: #003B68; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .role-badge { background: #27ae60; padding: 5px 12px; border-radius: 20px; font-size: 12px; }
+        .btn-logout { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+        .dashboard-container { display: flex; min-height: calc(100vh - 70px); }
+        .sidebar { width: 280px; background: white; border-right: 1px solid #e0e0e0; }
+        .modulo-btn { width: 100%; padding: 15px 20px; text-align: left; background: none; border: none; cursor: pointer; font-size: 14px; border-left: 3px solid transparent; }
+        .modulo-btn:hover { background: #f0f0f0; border-left-color: #003B68; }
+        .content-area { flex: 1; padding: 20px; }
+        .welcome-card { background: white; border-radius: 15px; padding: 30px; text-align: center; }
+        .menu-toggle { display: none; background: #003B68; color: white; padding: 10px; text-align: center; cursor: pointer; }
         @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: -280px;
-                height: 100%;
-                z-index: 1000;
-                transition: left 0.3s;
-            }
-            .sidebar.open {
-                left: 0;
-            }
-            .menu-toggle {
-                display: block;
-                background: #003B68;
-                color: white;
-                padding: 10px;
-                text-align: center;
-                cursor: pointer;
-            }
-        }
-        
-        .menu-toggle {
-            display: none;
+            .sidebar { position: fixed; left: -280px; height: 100%; z-index: 1000; transition: left 0.3s; }
+            .sidebar.open { left: 0; }
+            .menu-toggle { display: block; }
         }
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <div class="logo">
-            <img src="logo.png" alt="FAENA" onerror="this.style.display='none'">
-            <strong>FAENA CLOUD</strong>
-        </div>
+        <div class="logo"><strong>FAENA CLOUD</strong></div>
         <div class="user-info">
             <span id="userName">Usuario</span>
             <span id="userRole" class="role-badge"></span>
             <button class="btn-logout" id="logoutBtn">Salir</button>
         </div>
     </div>
-    
     <div class="menu-toggle" id="menuToggle">☰ Menú</div>
-    
     <div class="dashboard-container">
         <div class="sidebar" id="sidebar">
             <button class="modulo-btn" data-modulo="empresa">🏢 Gestión de Empresa</button>
@@ -139,80 +48,41 @@
             <button class="modulo-btn" data-modulo="liquidacion">📉 Liquidación</button>
             <button class="modulo-btn" data-modulo="comunicacion">💬 Comunicación</button>
         </div>
-        
         <div class="content-area" id="contentArea">
             <div class="welcome-card">
                 <h2>Bienvenido a FAENA CLOUD</h2>
                 <p>Selecciona un módulo del menú lateral para comenzar.</p>
-                <p style="margin-top: 20px; color: #27ae60;">✅ Sistema funcionando correctamente</p>
+                <p style="margin-top: 20px; color: #27ae60;">✅ Sistema funcionando</p>
             </div>
         </div>
     </div>
-    
     <script>
-        // Verificar sesión
         const sesion = sessionStorage.getItem('faena_sesion');
-        if (!sesion) {
-            window.location.href = 'index.html';
-        }
-        
+        if (!sesion) window.location.href = 'index.html';
         const usuario = JSON.parse(sesion);
         document.getElementById('userName').textContent = usuario.nombre || usuario.email;
         document.getElementById('userRole').textContent = usuario.rol == 3 ? 'Administrador' : (usuario.rol == 2 ? 'Supervisor' : 'Operador');
+        document.getElementById('logoutBtn').onclick = () => { sessionStorage.clear(); window.location.href = 'index.html'; };
+        document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('open');
         
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            sessionStorage.removeItem('faena_sesion');
-            window.location.href = 'index.html';
-        });
-        
-        // Menú móvil
-        document.getElementById('menuToggle').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.toggle('open');
-        });
-        
-        // Módulos
         document.querySelectorAll('.modulo-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.onclick = () => {
                 const modulo = btn.dataset.modulo;
-                const contentArea = document.getElementById('contentArea');
-                
-               if (modulo === 'catalogo') {
-    // Limpiar scripts anteriores si existen
-    const oldScript = document.getElementById('modulo-script');
-    if (oldScript) oldScript.remove();
-    
-    fetch('modulos/catalogo.html')
-        .then(response => response.text())
-        .then(html => {
-            contentArea.innerHTML = html;
-            // Extraer y ejecutar solo el script del módulo
-            const scriptContent = html.match(/<script>([\s\S]*?)<\/script>/);
-            if (scriptContent && scriptContent[1]) {
-                const newScript = document.createElement('script');
-                newScript.id = 'modulo-script';
-                newScript.textContent = scriptContent[1];
-                document.body.appendChild(newScript);
-            }
-        })
-        .catch(error => {
-            contentArea.innerHTML = `<div class="welcome-card"><h2>Error</h2><p>No se pudo cargar el módulo: ${error.message}</p></div>`;
-        });
-         } else {
-                    contentArea.innerHTML = `
-                        <div class="welcome-card">
-                            <h2>📦 Módulo: ${modulo}</h2>
-                            <p>Este módulo está en construcción.</p>
-                            <p>Próximamente: CRUD completo, formularios y conexión a base de datos.</p>
-                            <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#003B68; color:white; border:none; border-radius:8px;">Volver</button>
-                        </div>
-                    `;
+                const area = document.getElementById('contentArea');
+                if (modulo === 'catalogo') {
+                    fetch('modulos/catalogo.html')
+                        .then(r => r.text())
+                        .then(html => {
+                            area.innerHTML = html;
+                            const match = html.match(/<script>([\s\S]*?)<\/script>/);
+                            if (match) eval(match[1]);
+                        })
+                        .catch(() => area.innerHTML = '<div class="welcome-card"><h2>Error</h2><p>No se pudo cargar el módulo</p></div>');
+                } else {
+                    area.innerHTML = `<div class="welcome-card"><h2>📦 Módulo: ${modulo}</h2><p>En construcción</p><button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:#003B68;color:white;border:none;border-radius:8px;">Volver</button></div>`;
                 }
-                
-                if (window.innerWidth <= 768) {
-                    document.getElementById('sidebar').classList.remove('open');
-                }
-            });
+                if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+            };
         });
     </script>
 </body>
