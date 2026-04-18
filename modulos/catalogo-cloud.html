@@ -73,9 +73,7 @@
         </div>
         <div class="tabla-container">
             <table id="tablaMateriales">
-                <thead>
-                    <tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th></tr>
-                </thead>
+                <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th></tr></thead>
                 <tbody id="tbodyMateriales"></tbody>
             </table>
         </div>
@@ -225,7 +223,6 @@
             }).join('');
         }
         
-        // Paginación
         const pagDiv = document.getElementById(`paginacion${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
         const infoDiv = document.getElementById(`infoPagina${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
         if(pagDiv) {
@@ -241,7 +238,6 @@
             infoDiv.textContent = `Mostrando ${inicio+1} a ${Math.min(inicio+registrosPorPagina, filtrados.length)} de ${filtrados.length} registros`;
         }
         
-        // Doble clic para editar
         document.querySelectorAll(`#tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)} tr`).forEach(row => {
             row.ondblclick = (e) => {
                 if(e.target.tagName === 'A') return;
@@ -277,6 +273,12 @@
         const fd=new FormData(document.getElementById('formRegistro')); 
         const nuevo={}; 
         for(let[k,v] of fd) nuevo[k]=v; 
+        
+        // IMPORTANTE: Para mano de obra, eliminar campo unidad si existe
+        if(tipoActual === 'manoObra') {
+            delete nuevo.unidad;
+        }
+        
         if(editandoId){ 
             const idx=datos[tipoActual].findIndex(i=>i.id===editandoId); 
             if(idx!==-1){ 
