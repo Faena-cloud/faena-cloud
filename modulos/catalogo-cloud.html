@@ -32,15 +32,7 @@
         .btn-edit { background: #3498db; color: white; }
         .btn-clone { background: #27ae60; color: white; }
         .btn-delete { background: #e74c3c; color: white; }
-        .btn-accion:disabled { opacity: 0.5; cursor: not-allowed; }
-        .paginacion { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-        .paginacion button { padding: 8px 15px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer; }
-        .paginacion button.active { background: #003B68; color: white; border-color: #003B68; }
-        .paginacion button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .info-pagina { text-align: center; margin-top: 15px; font-size: 12px; color: #666; }
-        .link-proveedor { color: #3498db; text-decoration: underline; cursor: pointer; }
-        .link-proveedor:hover { color: #003B68; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow: auto; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
         .modal-content { background: white; max-width: 500px; margin: 50px auto; border-radius: 20px; padding: 25px; }
         .form-grid { display: grid; gap: 15px; }
         .campo-form { display: flex; flex-direction: column; }
@@ -49,6 +41,8 @@
         .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .btn-guardar { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
         .btn-cancelar { background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .exito { background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 5px; }
         @media (max-width: 768px) {
             th, td { padding: 8px 6px; font-size: 12px; }
             .btn-accion { padding: 3px 6px; font-size: 10px; }
@@ -66,32 +60,20 @@
         <button class="tab-btn" data-tab="equipos">🔧 Equipos</button>
         <button class="tab-btn" data-tab="manoObra">👷 Mano de Obra</button>
     </div>
+    
     <div id="tab-materiales" class="tab-content active">
-        <div class="barra">
-            <input type="text" id="buscarMateriales" placeholder="🔍 Buscar por nombre o proveedor...">
-            <button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button>
-        </div>
+        <div class="barra"><input type="text" id="buscarMateriales" placeholder="🔍 Buscar..."><button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button></div>
         <div id="tablaMateriales" class="tabla-container"></div>
-        <div id="paginacionMateriales" class="paginacion"></div>
-        <div id="infoPaginaMateriales" class="info-pagina"></div>
     </div>
+    
     <div id="tab-equipos" class="tab-content">
-        <div class="barra">
-            <input type="text" id="buscarEquipos" placeholder="🔍 Buscar por nombre...">
-            <button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button>
-        </div>
+        <div class="barra"><input type="text" id="buscarEquipos" placeholder="🔍 Buscar..."><button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button></div>
         <div id="tablaEquipos" class="tabla-container"></div>
-        <div id="paginacionEquipos" class="paginacion"></div>
-        <div id="infoPaginaEquipos" class="info-pagina"></div>
     </div>
+    
     <div id="tab-manoObra" class="tab-content">
-        <div class="barra">
-            <input type="text" id="buscarManoObra" placeholder="🔍 Buscar por nombre...">
-            <button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button>
-        </div>
+        <div class="barra"><input type="text" id="buscarManoObra" placeholder="🔍 Buscar..."><button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button></div>
         <div id="tablaManoObra" class="tabla-container"></div>
-        <div id="paginacionManoObra" class="paginacion"></div>
-        <div id="infoPaginaManoObra" class="info-pagina"></div>
     </div>
 </div>
 
@@ -109,194 +91,124 @@
 </div>
 
 <script>
-(function(){
     const API_URL = 'https://script.google.com/macros/s/AKfycbxtzThLpIglMqhgskt_3bYINfLLNJWNI8o6xWaL1ZiQpVkAk4trU2X8LcfXxj9pAluJug/exec';
     
-    const sesionData = sessionStorage.getItem('faena_sesion');
-    const rolUsuario = sesionData ? JSON.parse(sesionData).rol : 1;
-    const PERMISOS = { puedeCrear: true, puedeEditar: true, puedeClonar: true, puedeEliminar: rolUsuario >= 2 };
-    
-    let datos = { materiales: [], equipos: [], manoObra: [] };
-    let tipoActual = 'materiales';
+    let tipoActual = 'manoObra';
+    let datos = [];
+    let contador = 1;
     let editandoId = null;
-    let contadores = { materiales: 1, equipos: 1, manoObra: 1 };
-    let paginaActual = 1;
-    const registrosPorPagina = 15;
     
-    function generarId(tipo) {
-        const prefijos = { materiales: 'MAT', equipos: 'EQU', manoObra: 'MDO' };
-        const num = contadores[tipo].toString().padStart(3, '0');
-        contadores[tipo]++;
-        return `${prefijos[tipo]}-${num}`;
+    function generarId() {
+        const num = contador.toString().padStart(3, '0');
+        return `MDO-${num}`;
+    }
+    
+    function mostrarMensaje(msg, esError = false) {
+        const div = document.getElementById('mensaje');
+        if(!div) return;
+        div.textContent = msg;
+        div.className = esError ? 'error' : 'exito';
+        setTimeout(() => div.innerHTML = '', 3000);
     }
     
     async function cargarDatos() {
         try {
             const response = await fetch(`${API_URL}?accion=listar&tipo=${tipoActual}`);
             const result = await response.json();
-            if (result.success) {
-                datos[tipoActual] = result.data;
-                const ids = result.data.map(r => parseInt(r.id?.split('-')[1]) || 0);
-                contadores[tipoActual] = Math.max(...ids, 0) + 1;
-            } else {
-                datos[tipoActual] = [];
+            if (result.success && result.data) {
+                datos = result.data;
+                if(datos.length > 0) {
+                    const ids = datos.map(r => parseInt(r.id?.split('-')[1]) || 0);
+                    contador = Math.max(...ids, 0) + 1;
+                }
+                renderizarTabla();
             }
         } catch(e) {
-            console.error('Error al cargar:', e);
-            datos[tipoActual] = [];
+            console.error(e);
         }
-        paginaActual = 1;
-        renderizarTabla();
-    }
-    
-    async function guardarRegistroEnCloud(registro) {
-        try {
-            const response = await fetch(`${API_URL}?accion=guardar&tipo=${tipoActual}&datos=${JSON.stringify(registro)}`);
-            const result = await response.json();
-            return result.success;
-        } catch(e) {
-            console.error('Error al guardar:', e);
-            return false;
-        }
-    }
-    
-    async function eliminarRegistroEnCloud(id) {
-        if(!PERMISOS.puedeEliminar) return false;
-        try {
-            const response = await fetch(`${API_URL}?accion=eliminar&tipo=${tipoActual}&id=${id}`);
-            const result = await response.json();
-            return result.success;
-        } catch(e) {
-            console.error('Error al eliminar:', e);
-            return false;
-        }
-    }
-    
-    function filtrarDatos() {
-        const busca = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`)?.value.toLowerCase() || '';
-        if(!busca) return datos[tipoActual];
-        return datos[tipoActual].filter(item => 
-            item.descripcion?.toLowerCase().includes(busca) || 
-            item.proveedor?.toLowerCase().includes(busca)
-        );
     }
     
     function renderizarTabla() {
-        const filtrados = filtrarDatos();
-        const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
-        const inicio = (paginaActual - 1) * registrosPorPagina;
-        const paginados = filtrados.slice(inicio, inicio + registrosPorPagina);
-        
-        let html = '';
-        if(paginados.length === 0) {
-            html = '<p style="text-align:center; padding:40px;">No hay registros. Haz clic en "+ Nuevo" para agregar.</p>';
-        } else {
-            html = '<table><thead><tr>';
-            if(tipoActual === 'materiales') html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th>';
-            else if(tipoActual === 'equipos') html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th>';
-            else html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th>';
-            html += '</tr></thead><tbody>';
-            
-            paginados.forEach(item => {
-                html += '<tr data-id="' + item.id + '">';
-                html += '<td>' + (item.id || '') + '</td>';
-                html += '<td>' + (item.descripcion || '') + '</td>';
-                html += '<td>' + (item.unidad || '') + '</td>';
-                html += '<td>$' + (item.precio || 0) + '</td>';
-                if(tipoActual === 'materiales') {
-                    const proveedor = item.proveedor || '';
-                    const esLink = proveedor.match(/^https?:\/\//i);
-                    html += '<td>' + (esLink ? '<a href="' + proveedor + '" target="_blank" class="link-proveedor" ondblclick="event.stopPropagation()">' + proveedor + '</a>' : proveedor) + '</td>';
-                } else {
-                    const ubi = item.ubicacion || 'ambos';
-                    html += '<td><span class="badge ' + ubi + '">' + (ubi === 'taller' ? '🔧 Taller' : ubi === 'campo' ? '🌾 Campo' : '🔄 Ambos') + '</span></td>';
-                }
-                html += '<td class="acciones">';
-                html += '<button class="btn-accion btn-edit" onclick="event.stopPropagation(); window.editarRegistro(\'' + item.id + '\')" ' + (!PERMISOS.puedeEditar ? 'disabled' : '') + '>✏️</button>';
-                html += '<button class="btn-accion btn-clone" onclick="event.stopPropagation(); window.clonarRegistro(\'' + item.id + '\')" ' + (!PERMISOS.puedeClonar ? 'disabled' : '') + '>📋</button>';
-                html += '<button class="btn-accion btn-delete" onclick="event.stopPropagation(); window.eliminarRegistro(\'' + item.id + '\')" ' + (!PERMISOS.puedeEliminar ? 'disabled' : '') + '>🗑️</button>';
-                html += '</td>';
-                html += '</tr>';
-            });
-            html += '</tbody></table>';
-        }
-        
         const container = document.getElementById(`tabla${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-        if(container) container.innerHTML = html;
+        if(!container) return;
         
-        const pagDiv = document.getElementById(`paginacion${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-        const infoDiv = document.getElementById(`infoPagina${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-        if(pagDiv) {
-            pagDiv.innerHTML = `
-                <button onclick="window.cambiarPagina(1)" ${paginaActual === 1 ? 'disabled' : ''}>⏮ Primera</button>
-                <button onclick="window.cambiarPagina(${paginaActual-1})" ${paginaActual === 1 ? 'disabled' : ''}>◀ Anterior</button>
-                <span style="padding: 8px 15px;">Página ${paginaActual} de ${totalPaginas || 1}</span>
-                <button onclick="window.cambiarPagina(${paginaActual+1})" ${paginaActual === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Siguiente ▶</button>
-                <button onclick="window.cambiarPagina(${totalPaginas})" ${paginaActual === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Última ⏩</button>
-            `;
-        }
-        if(infoDiv) {
-            infoDiv.textContent = `Mostrando ${inicio+1} a ${Math.min(inicio+registrosPorPagina, filtrados.length)} de ${filtrados.length} registros`;
+        if(datos.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding:40px;">No hay registros. Haz clic en "+ Nuevo" para agregar.</p>';
+            return;
         }
         
-        document.querySelectorAll(`#tabla${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)} tbody tr`).forEach(row => {
-            row.ondblclick = (e) => {
-                if(e.target.tagName === 'A') return;
-                const id = row.dataset.id;
-                if(id && PERMISOS.puedeEditar) window.editarRegistro(id);
-            };
+        let html = '<table><thead><tr>';
+        if(tipoActual === 'materiales') {
+            html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th>';
+        } else if(tipoActual === 'equipos') {
+            html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th>';
+        } else {
+            html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th>';
+        }
+        html += '</table></thead><tbody>';
+        
+        datos.forEach(item => {
+            html += '<tr data-id="' + item.id + '">';
+            html += '<td>' + (item.id || '') + '</td>';
+            html += '<td>' + (item.descripcion || '') + '</td>';
+            html += '<td>' + (item.unidad || '') + '</td>';
+            html += '<td>$' + (item.precio || 0) + '</td>';
+            if(tipoActual === 'materiales') {
+                html += '<td>' + (item.proveedor || '') + '</td>';
+            } else {
+                const ubi = item.ubicacion || 'ambos';
+                html += '<td><span class="badge ' + ubi + '">' + (ubi === 'taller' ? '🔧 Taller' : ubi === 'campo' ? '🌾 Campo' : '🔄 Ambos') + '</span></td>';
+            }
+            html += '<td class="acciones">';
+            html += '<button class="btn-accion btn-edit" onclick="editarRegistro(\'' + item.id + '\')">✏️</button>';
+            html += '<button class="btn-accion btn-clone" onclick="clonarRegistro(\'' + item.id + '\')">📋</button>';
+            html += '<button class="btn-accion btn-delete" onclick="eliminarRegistro(\'' + item.id + '\')">🗑️</button>';
+            html += '</td>';
+            html += '</tr>';
         });
+        html += '</tbody></table>';
+        container.innerHTML = html;
     }
     
-    window.cambiarPagina = (pagina) => {
-        const filtrados = filtrarDatos();
-        const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
-        if(pagina >= 1 && pagina <= totalPaginas) {
-            paginaActual = pagina;
-            renderizarTabla();
-        }
-    };
-    
-    function abrirFormulario(tipo, reg = null) {
-        tipoActual = tipo;
+    function abrirFormulario(reg = null) {
         editandoId = reg?.id || null;
         const modal = document.getElementById('modalFormulario');
         const titulo = document.getElementById('modalTitulo');
         const camposDiv = document.getElementById('formCampos');
         
-        titulo.textContent = reg ? `✏️ Editar ${tipo.slice(0,-1)}` : `➕ Nuevo ${tipo.slice(0,-1)}`;
+        titulo.textContent = reg ? '✏️ Editar registro' : '➕ Nuevo registro';
         
         let campos = [];
-        if(tipo === 'materiales') {
+        if(tipoActual === 'materiales') {
             campos = [
                 { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
-                { name: 'unidad', label: 'Unidad (kg, m3, saco)', type: 'text', required: true },
-                { name: 'precio', label: 'Precio unitario ($)', type: 'number', required: true },
-                { name: 'proveedor', label: 'Proveedor (URL o texto)', type: 'text' }
+                { name: 'unidad', label: 'Unidad', type: 'text', required: true },
+                { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
+                { name: 'proveedor', label: 'Proveedor', type: 'text' }
             ];
-        } else if(tipo === 'equipos') {
+        } else if(tipoActual === 'equipos') {
             campos = [
                 { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
-                { name: 'unidad', label: 'Unidad (hora, día)', type: 'text', required: true },
+                { name: 'unidad', label: 'Unidad', type: 'text', required: true },
                 { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
                 { name: 'ubicacion', label: 'Ubicación', type: 'select', options: ['taller', 'campo', 'ambos'], required: true }
             ];
-        } else if(tipo === 'manoObra') {
+        } else {
             campos = [
                 { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
-                { name: 'unidad', label: 'Unidad (hora, día, mes)', type: 'text', required: true },
+                { name: 'unidad', label: 'Unidad', type: 'text', required: true, value: 'hora' },
                 { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
                 { name: 'ubicacion', label: 'Ubicación', type: 'select', options: ['taller', 'campo', 'ambos'], required: true }
             ];
         }
         
         camposDiv.innerHTML = campos.map(campo => {
-            let valor = reg ? reg[campo.name] || '' : '';
+            let valor = reg ? reg[campo.name] || '' : (campo.value || '');
             if(campo.type === 'select') {
                 return `
                     <div class="campo-form">
                         <label>${campo.label}</label>
-                        <select name="${campo.name}" ${campo.required ? 'required' : ''}>
+                        <select name="${campo.name}" required>
                             <option value="">Seleccionar</option>
                             ${campo.options.map(opt => `<option value="${opt}" ${valor === opt ? 'selected' : ''}>${opt === 'taller' ? '🔧 Taller' : opt === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</option>`).join('')}
                         </select>
@@ -327,52 +239,70 @@
         
         if(editandoId) {
             nuevo.id = editandoId;
-            const idx = datos[tipoActual].findIndex(i => i.id === editandoId);
-            if(idx !== -1) {
-                datos[tipoActual][idx] = nuevo;
-                await guardarRegistroEnCloud(nuevo);
-            }
+            const idx = datos.findIndex(i => i.id === editandoId);
+            if(idx !== -1) datos[idx] = nuevo;
         } else {
-            nuevo.id = generarId(tipoActual);
-            datos[tipoActual].push(nuevo);
-            await guardarRegistroEnCloud(nuevo);
+            nuevo.id = generarId();
+            datos.push(nuevo);
+            contador++;
         }
-        await cargarDatos();
-        cerrarModal();
+        
+        try {
+            const response = await fetch(`${API_URL}?accion=guardar&tipo=${tipoActual}&datos=${JSON.stringify(nuevo)}`);
+            const result = await response.json();
+            if(result.success) {
+                await cargarDatos();
+                cerrarModal();
+            }
+        } catch(e) {
+            console.error(e);
+        }
     }
     
-    window.editarRegistro = (id) => {
-        const registro = datos[tipoActual].find(i => i.id === id);
-        if(registro) abrirFormulario(tipoActual, registro);
-    };
+    async function eliminarRegistro(id) {
+        if(!confirm('¿Eliminar este registro?')) return;
+        try {
+            const response = await fetch(`${API_URL}?accion=eliminar&tipo=${tipoActual}&id=${id}`);
+            const result = await response.json();
+            if(result.success) {
+                await cargarDatos();
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
     
-    window.clonarRegistro = async (id) => {
-        if(!PERMISOS.puedeClonar) return alert('Sin permiso');
-        const original = datos[tipoActual].find(i => i.id === id);
+    async function clonarRegistro(id) {
+        const original = datos.find(i => i.id === id);
         if(original) {
             const clon = JSON.parse(JSON.stringify(original));
             delete clon.id;
             clon.descripcion = clon.descripcion + ' (Copia)';
-            clon.id = generarId(tipoActual);
-            await guardarRegistroEnCloud(clon);
-            await cargarDatos();
-            alert('✅ Registro clonado exitosamente');
+            clon.id = generarId();
+            try {
+                const response = await fetch(`${API_URL}?accion=guardar&tipo=${tipoActual}&datos=${JSON.stringify(clon)}`);
+                const result = await response.json();
+                if(result.success) {
+                    await cargarDatos();
+                }
+            } catch(e) {
+                console.error(e);
+            }
         }
-    };
+    }
     
-    window.eliminarRegistro = async (id) => {
-        if(!PERMISOS.puedeEliminar) return alert('❌ No tienes permiso para eliminar');
-        if(confirm('⚠️ ¿Estás seguro de eliminar este registro?')) {
-            await eliminarRegistroEnCloud(id);
-            await cargarDatos();
-        }
+    window.editarRegistro = (id) => {
+        const registro = datos.find(i => i.id === id);
+        if(registro) abrirFormulario(registro);
     };
+    window.eliminarRegistro = eliminarRegistro;
+    window.clonarRegistro = clonarRegistro;
     
     document.getElementById('formRegistro')?.addEventListener('submit', guardarFormulario);
     document.getElementById('btnCancelar')?.addEventListener('click', cerrarModal);
-    document.getElementById('btnNuevoMaterial')?.addEventListener('click', () => abrirFormulario('materiales'));
-    document.getElementById('btnNuevoEquipo')?.addEventListener('click', () => abrirFormulario('equipos'));
-    document.getElementById('btnNuevoManoObra')?.addEventListener('click', () => abrirFormulario('manoObra'));
+    document.getElementById('btnNuevoMaterial')?.addEventListener('click', () => { tipoActual = 'materiales'; abrirFormulario(); });
+    document.getElementById('btnNuevoEquipo')?.addEventListener('click', () => { tipoActual = 'equipos'; abrirFormulario(); });
+    document.getElementById('btnNuevoManoObra')?.addEventListener('click', () => { tipoActual = 'manoObra'; abrirFormulario(); });
     
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.onclick = () => {
@@ -381,19 +311,13 @@
             btn.classList.add('active');
             tipoActual = btn.dataset.tab;
             document.getElementById(`tab-${tipoActual}`).classList.add('active');
-            paginaActual = 1;
             cargarDatos();
-            const inp = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-            if(inp) inp.oninput = () => { paginaActual = 1; renderizarTabla(); };
         };
     });
     
-    document.querySelectorAll('.barra input').forEach(i => {
-        if(i) i.oninput = () => { paginaActual = 1; renderizarTabla(); };
-    });
-    
+    // Inicializar
+    tipoActual = 'manoObra';
     cargarDatos();
-})();
 </script>
 </body>
 </html>
