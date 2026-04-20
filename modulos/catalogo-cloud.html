@@ -101,9 +101,9 @@
         </div>
         <div class="tabla-container">
             <table id="tablaManoObra">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Precio/hora</th><th>Ubicación</th><th>Acciones</th></tr></thead>
-                <tbody id="tbodyManoObra"></tbody>
-            </table>
+    <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead>
+    <tbody id="tbodyManoObra"></tbody>
+</table>
         </div>
         <div id="paginacionManoObra" class="paginacion"></div>
         <div id="infoPaginaManoObra" class="info-pagina"></div>
@@ -200,9 +200,10 @@
                 row += `<td>${item.id}</td>`;
                 row += `<td>${item.descripcion || ''}</td>`;
                 if(tipoActual === 'manoObra') {
-                    row += `<td>$${item.precio || 0}</td>`;
-                    row += `<td><span class="badge ${item.ubicacion}">${item.ubicacion === 'taller' ? '🔧 Taller' : item.ubicacion === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
-                } else {
+    row += `<td>${item.unidad || ''}</td>`;
+    row += `<td>$${item.precio || 0}</td>`;
+    row += `<td><span class="badge ${item.ubicacion}">${item.ubicacion === 'taller' ? '🔧 Taller' : item.ubicacion === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
+} else {
                     row += `<td>${item.unidad || ''}</td>`;
                     row += `<td>$${item.precio || 0}</td>`;
                     if(tipoActual === 'materiales') {
@@ -263,7 +264,7 @@
         let campos=[];
         if(tipo==='materiales') campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'unidad',label:'Unidad (kg, m3, saco)',type:'text',req:true},{name:'precio',label:'Precio unitario ($)',type:'number',req:true},{name:'proveedor',label:'Proveedor (URL o texto)',type:'text'}];
         else if(tipo==='equipos') campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'unidad',label:'Unidad (hora, día)',type:'text',req:true},{name:'precio',label:'Precio ($)',type:'number',req:true},{name:'ubicacion',label:'Ubicación',type:'select',opts:['taller','campo','ambos'],req:true}];
-        else campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'precio',label:'Precio por hora ($)',type:'number',req:true},{name:'ubicacion',label:'Ubicación',type:'select',opts:['taller','campo','ambos'],req:true}];
+        else campos=[{name:'descripcion',label:'Descripción',type:'text',req:true},{name:'unidad',label:'Unidad (hora, día, mes)',type:'text',req:true},{name:'precio',label:'Precio ($)',type:'number',req:true},{name:'ubicacion',label:'Ubicación',type:'select',opts:['taller','campo','ambos'],req:true}];
         camposDiv.innerHTML=campos.map(c=>`<div class="campo-form"><label>${c.label}</label>${c.type==='select'?`<select name="${c.name}" ${c.req?'required':''}><option value="">Seleccionar</option>${c.opts.map(o=>`<option value="${o}" ${reg&&reg[c.name]===o?'selected':''}>${o==='taller'?'🔧 Taller':o==='campo'?'🌾 Campo':'🔄 Ambos'}</option>`).join('')}</select>`:`<input type="${c.type}" name="${c.name}" value="${reg?reg[c.name]||'':''}" ${c.req?'required':''}>`}</div>`).join('');
         modal.style.display='block';
     }
@@ -274,11 +275,7 @@
         const nuevo={}; 
         for(let[k,v] of fd) nuevo[k]=v; 
         
-        // IMPORTANTE: Para mano de obra, eliminar campo unidad si existe
-        if(tipoActual === 'manoObra') {
-            delete nuevo.unidad;
-        }
-        
+               
         if(editandoId){ 
             const idx=datos[tipoActual].findIndex(i=>i.id===editandoId); 
             if(idx!==-1){ 
