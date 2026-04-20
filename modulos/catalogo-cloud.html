@@ -41,8 +41,6 @@
         .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .btn-guardar { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
         .btn-cancelar { background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
-        .exito { background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px; }
-        .error { background: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 5px; }
         @media (max-width: 768px) {
             th, td { padding: 8px 6px; font-size: 12px; }
             .btn-accion { padding: 3px 6px; font-size: 10px; }
@@ -93,22 +91,16 @@
 <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbxtzThLpIglMqhgskt_3bYINfLLNJWNI8o6xWaL1ZiQpVkAk4trU2X8LcfXxj9pAluJug/exec';
     
-    let tipoActual = 'manoObra';
-    let datos = [];
-    let contador = 1;
+    let tipoActual = 'materiales';
+    let datos = { materiales: [], equipos: [], manoObra: [] };
+    let contadores = { materiales: 1, equipos: 1, manoObra: 1 };
     let editandoId = null;
     
-    function generarId() {
-        const num = contador.toString().padStart(3, '0');
-        return `MDO-${num}`;
-    }
-    
-    function mostrarMensaje(msg, esError = false) {
-        const div = document.getElementById('mensaje');
-        if(!div) return;
-        div.textContent = msg;
-        div.className = esError ? 'error' : 'exito';
-        setTimeout(() => div.innerHTML = '', 3000);
+    function generarId(tipo) {
+        const prefijos = { materiales: 'MAT', equipos: 'EQU', manoObra: 'MDO' };
+        const num = contadores[tipo].toString().padStart(3, '0');
+        contadores[tipo]++;
+        return `${prefijos[tipo]}-${num}`;
     }
     
     async function cargarDatos() {
@@ -116,10 +108,10 @@
             const response = await fetch(`${API_URL}?accion=listar&tipo=${tipoActual}`);
             const result = await response.json();
             if (result.success && result.data) {
-                datos = result.data;
-                if(datos.length > 0) {
-                    const ids = datos.map(r => parseInt(r.id?.split('-')[1]) || 0);
-                    contador = Math.max(...ids, 0) + 1;
+                datos[tipoActual] = result.data;
+                if(result.data.length > 0) {
+                    const ids = result.data.map(r => parseInt(r.id?.split('-')[1]) || 0);
+                    contadores[tipoActual] = Math.max(...ids, 0) + 1;
                 }
                 renderizarTabla();
             }
@@ -132,7 +124,9 @@
         const container = document.getElementById(`tabla${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
         if(!container) return;
         
-        if(datos.length === 0) {
+        const lista = datos[tipoActual];
+        
+        if(!lista || lista.length === 0) {
             container.innerHTML = '<p style="text-align:center; padding:40px;">No hay registros. Haz clic en "+ Nuevo" para agregar.</p>';
             return;
         }
@@ -140,21 +134,21 @@
         let html = '<table><thead><tr>';
         if(tipoActual === 'materiales') {
             html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th>';
-        } else if(tipoActual === 'equipos') {
-            html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th>';
         } else {
             html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th>';
         }
-        html += '</table></thead><tbody>';
+        html += '</tr></thead><tbody>';
         
-        datos.forEach(item => {
+        lista.forEach(item => {
             html += '<tr data-id="' + item.id + '">';
             html += '<td>' + (item.id || '') + '</td>';
             html += '<td>' + (item.descripcion || '') + '</td>';
             html += '<td>' + (item.unidad || '') + '</td>';
             html += '<td>$' + (item.precio || 0) + '</td>';
             if(tipoActual === 'materiales') {
-                html += '<td>' + (item.proveedor || '') + '</td>';
+                const proveedor = item.proveedor || '';
+                const esLink = proveedor.match(/^https?:\/\//i);
+                html += '<td>' + (esLink ? '<a href="' + proveedor + '" target="_blank" style="color:#3498db; text-decoration:underline;">' + proveedor + '</a>' : proveedor) + '</td>';
             } else {
                 const ubi = item.ubicacion || 'ambos';
                 html += '<td><span class="badge ' + ubi + '">' + (ubi === 'taller' ? '🔧 Taller' : ubi === 'campo' ? '🌾 Campo' : '🔄 Ambos') + '</span></td>';
@@ -239,12 +233,11 @@
         
         if(editandoId) {
             nuevo.id = editandoId;
-            const idx = datos.findIndex(i => i.id === editandoId);
-            if(idx !== -1) datos[idx] = nuevo;
+            const idx = datos[tipoActual].findIndex(i => i.id === editandoId);
+            if(idx !== -1) datos[tipoActual][idx] = nuevo;
         } else {
-            nuevo.id = generarId();
-            datos.push(nuevo);
-            contador++;
+            nuevo.id = generarId(tipoActual);
+            datos[tipoActual].push(nuevo);
         }
         
         try {
@@ -273,12 +266,12 @@
     }
     
     async function clonarRegistro(id) {
-        const original = datos.find(i => i.id === id);
+        const original = datos[tipoActual].find(i => i.id === id);
         if(original) {
             const clon = JSON.parse(JSON.stringify(original));
             delete clon.id;
             clon.descripcion = clon.descripcion + ' (Copia)';
-            clon.id = generarId();
+            clon.id = generarId(tipoActual);
             try {
                 const response = await fetch(`${API_URL}?accion=guardar&tipo=${tipoActual}&datos=${JSON.stringify(clon)}`);
                 const result = await response.json();
@@ -292,7 +285,7 @@
     }
     
     window.editarRegistro = (id) => {
-        const registro = datos.find(i => i.id === id);
+        const registro = datos[tipoActual].find(i => i.id === id);
         if(registro) abrirFormulario(registro);
     };
     window.eliminarRegistro = eliminarRegistro;
@@ -316,7 +309,7 @@
     });
     
     // Inicializar
-    tipoActual = 'manoObra';
+    tipoActual = 'materiales';
     cargarDatos();
 </script>
 </body>
