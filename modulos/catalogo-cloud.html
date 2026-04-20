@@ -201,11 +201,15 @@
                 row += `<td>${item.descripcion || ''}</td>`;
                 row += `<td>${item.unidad || ''}</td>`;
                 row += `<td>$${item.precio || 0}</td>`;
-                if(tipoActual === 'materiales') {
-                    const proveedor = item.proveedor || '';
-                    const esLink = proveedor.match(/^https?:\/\//i);
-                    row += `<td>${esLink ? `<a href="${proveedor}" target="_blank" class="link-proveedor" ondblclick="event.stopPropagation()">${proveedor}</a>` : proveedor}</td>`;
-                } else {
+               if(tipoActual === 'materiales') {
+    const proveedor = item.proveedor || '';
+    const esLink = proveedor.match(/^https?:\/\//i);
+    row += `<td>${esLink ? `<a href="${proveedor}" target="_blank" class="link-proveedor" ondblclick="event.stopPropagation()">${proveedor}</a>` : proveedor}</td>`;
+} else if(tipoActual === 'equipos') {
+    row += `<td><span class="badge ${item.ubicacion}">${item.ubicacion === 'taller' ? '🔧 Taller' : item.ubicacion === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
+} else if(tipoActual === 'manoObra') {
+    row += `<td><span class="badge ${item.ubicacion}">${item.ubicacion === 'taller' ? '🔧 Taller' : item.ubicacion === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
+} else {
                     row += `<td><span class="badge ${item.ubicacion}">${item.ubicacion === 'taller' ? '🔧 Taller' : item.ubicacion === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
                 }
                 row += `<td class="acciones">
