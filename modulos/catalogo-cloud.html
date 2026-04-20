@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Base de Datos - FAENA CLOUD</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,6 +38,8 @@
         .paginacion button.active { background: #003B68; color: white; border-color: #003B68; }
         .paginacion button:disabled { opacity: 0.5; cursor: not-allowed; }
         .info-pagina { text-align: center; margin-top: 15px; font-size: 12px; color: #666; }
+        .link-proveedor { color: #3498db; text-decoration: underline; cursor: pointer; }
+        .link-proveedor:hover { color: #003B68; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow: auto; }
         .modal-content { background: white; max-width: 500px; margin: 50px auto; border-radius: 20px; padding: 25px; }
         .form-grid { display: grid; gap: 15px; }
@@ -66,35 +68,57 @@
     </div>
     <div id="tab-materiales" class="tab-content active">
         <div class="barra">
-            <input type="text" id="buscarMateriales" placeholder="🔍 Buscar...">
+            <input type="text" id="buscarMateriales" placeholder="🔍 Buscar por nombre o proveedor...">
             <button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button>
         </div>
         <div id="tablaMateriales" class="tabla-container"></div>
         <div id="paginacionMateriales" class="paginacion"></div>
+        <div id="infoPaginaMateriales" class="info-pagina"></div>
     </div>
     <div id="tab-equipos" class="tab-content">
         <div class="barra">
-            <input type="text" id="buscarEquipos" placeholder="🔍 Buscar...">
+            <input type="text" id="buscarEquipos" placeholder="🔍 Buscar por nombre...">
             <button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button>
         </div>
         <div id="tablaEquipos" class="tabla-container"></div>
         <div id="paginacionEquipos" class="paginacion"></div>
+        <div id="infoPaginaEquipos" class="info-pagina"></div>
     </div>
     <div id="tab-manoObra" class="tab-content">
         <div class="barra">
-            <input type="text" id="buscarManoObra" placeholder="🔍 Buscar...">
+            <input type="text" id="buscarManoObra" placeholder="🔍 Buscar por nombre...">
             <button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button>
         </div>
         <div id="tablaManoObra" class="tabla-container"></div>
         <div id="paginacionManoObra" class="paginacion"></div>
+        <div id="infoPaginaManoObra" class="info-pagina"></div>
+    </div>
+</div>
+
+<div id="modalFormulario" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitulo">Nuevo Registro</h3>
+        <form id="formRegistro">
+            <div id="formCampos" class="form-grid"></div>
+            <div class="modal-buttons">
+                <button type="button" id="btnCancelar" class="btn-cancelar">Cancelar</button>
+                <button type="submit" class="btn-guardar">Guardar</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <script>
+(function(){
     const API_URL = 'https://script.google.com/macros/s/AKfycbxtzThLpIglMqhgskt_3bYINfLLNJWNI8o6xWaL1ZiQpVkAk4trU2X8LcfXxj9pAluJug/exec';
+    
+    const sesionData = sessionStorage.getItem('faena_sesion');
+    const rolUsuario = sesionData ? JSON.parse(sesionData).rol : 1;
+    const PERMISOS = { puedeCrear: true, puedeEditar: true, puedeClonar: true, puedeEliminar: rolUsuario >= 2 };
     
     let datos = { materiales: [], equipos: [], manoObra: [] };
     let tipoActual = 'materiales';
+    let editandoId = null;
     let contadores = { materiales: 1, equipos: 1, manoObra: 1 };
     let paginaActual = 1;
     const registrosPorPagina = 15;
@@ -114,23 +138,58 @@
                 datos[tipoActual] = result.data;
                 const ids = result.data.map(r => parseInt(r.id?.split('-')[1]) || 0);
                 contadores[tipoActual] = Math.max(...ids, 0) + 1;
+            } else {
+                datos[tipoActual] = [];
             }
-        } catch(e) { console.error(e); }
+        } catch(e) {
+            console.error('Error al cargar:', e);
+            datos[tipoActual] = [];
+        }
+        paginaActual = 1;
         renderizarTabla();
     }
     
-    function renderizarTabla() {
-        let lista = datos[tipoActual];
+    async function guardarRegistroEnCloud(registro) {
+        try {
+            const response = await fetch(`${API_URL}?accion=guardar&tipo=${tipoActual}&datos=${JSON.stringify(registro)}`);
+            const result = await response.json();
+            return result.success;
+        } catch(e) {
+            console.error('Error al guardar:', e);
+            return false;
+        }
+    }
+    
+    async function eliminarRegistroEnCloud(id) {
+        if(!PERMISOS.puedeEliminar) return false;
+        try {
+            const response = await fetch(`${API_URL}?accion=eliminar&tipo=${tipoActual}&id=${id}`);
+            const result = await response.json();
+            return result.success;
+        } catch(e) {
+            console.error('Error al eliminar:', e);
+            return false;
+        }
+    }
+    
+    function filtrarDatos() {
         const busca = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`)?.value.toLowerCase() || '';
-        if(busca) lista = lista.filter(i => i.descripcion?.toLowerCase().includes(busca));
-        
-        const totalPaginas = Math.ceil(lista.length / registrosPorPagina);
+        if(!busca) return datos[tipoActual];
+        return datos[tipoActual].filter(item => 
+            item.descripcion?.toLowerCase().includes(busca) || 
+            item.proveedor?.toLowerCase().includes(busca)
+        );
+    }
+    
+    function renderizarTabla() {
+        const filtrados = filtrarDatos();
+        const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
         const inicio = (paginaActual - 1) * registrosPorPagina;
-        const paginados = lista.slice(inicio, inicio + registrosPorPagina);
+        const paginados = filtrados.slice(inicio, inicio + registrosPorPagina);
         
         let html = '';
         if(paginados.length === 0) {
-            html = '<p>No hay registros</p>';
+            html = '<p style="text-align:center; padding:40px;">No hay registros. Haz clic en "+ Nuevo" para agregar.</p>';
         } else {
             html = '<table><thead><tr>';
             if(tipoActual === 'materiales') html += '<th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th>';
@@ -139,85 +198,178 @@
             html += '</tr></thead><tbody>';
             
             paginados.forEach(item => {
-                html += '<tr>';
-                html += `<td>${item.id || ''}</td>`;
-                html += `<td>${item.descripcion || ''}</td>`;
-                html += `<td>${item.unidad || ''}</td>`;
-                html += `<td>$${item.precio || 0}</td>`;
+                html += '<tr data-id="' + item.id + '">';
+                html += '<td>' + (item.id || '') + '</td>';
+                html += '<td>' + (item.descripcion || '') + '</td>';
+                html += '<td>' + (item.unidad || '') + '</td>';
+                html += '<td>$' + (item.precio || 0) + '</td>';
                 if(tipoActual === 'materiales') {
-                    html += `<td>${item.proveedor || ''}</td>`;
+                    const proveedor = item.proveedor || '';
+                    const esLink = proveedor.match(/^https?:\/\//i);
+                    html += '<td>' + (esLink ? '<a href="' + proveedor + '" target="_blank" class="link-proveedor" ondblclick="event.stopPropagation()">' + proveedor + '</a>' : proveedor) + '</td>';
                 } else {
                     const ubi = item.ubicacion || 'ambos';
-                    html += `<td><span class="badge ${ubi}">${ubi === 'taller' ? 'Taller' : ubi === 'campo' ? 'Campo' : 'Ambos'}</span></td>`;
+                    html += '<td><span class="badge ' + ubi + '">' + (ubi === 'taller' ? '🔧 Taller' : ubi === 'campo' ? '🌾 Campo' : '🔄 Ambos') + '</span></td>';
                 }
-                html += `<td class="acciones">
-                    <button class="btn-accion btn-edit" onclick="editarRegistro('${item.id}')">✏️</button>
-                    <button class="btn-accion btn-clone" onclick="clonarRegistro('${item.id}')">📋</button>
-                    <button class="btn-accion btn-delete" onclick="eliminarRegistro('${item.id}')">🗑️</button>
-                </td>`;
+                html += '<td class="acciones">';
+                html += '<button class="btn-accion btn-edit" onclick="event.stopPropagation(); window.editarRegistro(\'' + item.id + '\')" ' + (!PERMISOS.puedeEditar ? 'disabled' : '') + '>✏️</button>';
+                html += '<button class="btn-accion btn-clone" onclick="event.stopPropagation(); window.clonarRegistro(\'' + item.id + '\')" ' + (!PERMISOS.puedeClonar ? 'disabled' : '') + '>📋</button>';
+                html += '<button class="btn-accion btn-delete" onclick="event.stopPropagation(); window.eliminarRegistro(\'' + item.id + '\')" ' + (!PERMISOS.puedeEliminar ? 'disabled' : '') + '>🗑️</button>';
+                html += '</td>';
                 html += '</tr>';
             });
             html += '</tbody></table>';
         }
         
-        document.getElementById(`tabla${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`).innerHTML = html;
+        const container = document.getElementById(`tabla${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+        if(container) container.innerHTML = html;
         
         const pagDiv = document.getElementById(`paginacion${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+        const infoDiv = document.getElementById(`infoPagina${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
         if(pagDiv) {
             pagDiv.innerHTML = `
-                <button onclick="cambiarPagina(1)" ${paginaActual === 1 ? 'disabled' : ''}>⏮ Primera</button>
-                <button onclick="cambiarPagina(${paginaActual-1})" ${paginaActual === 1 ? 'disabled' : ''}>◀ Anterior</button>
-                <span>Página ${paginaActual} de ${totalPaginas || 1}</span>
-                <button onclick="cambiarPagina(${paginaActual+1})" ${paginaActual === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Siguiente ▶</button>
-                <button onclick="cambiarPagina(${totalPaginas})" ${paginaActual === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Última ⏩</button>
+                <button onclick="window.cambiarPagina(1)" ${paginaActual === 1 ? 'disabled' : ''}>⏮ Primera</button>
+                <button onclick="window.cambiarPagina(${paginaActual-1})" ${paginaActual === 1 ? 'disabled' : ''}>◀ Anterior</button>
+                <span style="padding: 8px 15px;">Página ${paginaActual} de ${totalPaginas || 1}</span>
+                <button onclick="window.cambiarPagina(${paginaActual+1})" ${paginaActual === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Siguiente ▶</button>
+                <button onclick="window.cambiarPagina(${totalPaginas})" ${paginaActual === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Última ⏩</button>
             `;
         }
+        if(infoDiv) {
+            infoDiv.textContent = `Mostrando ${inicio+1} a ${Math.min(inicio+registrosPorPagina, filtrados.length)} de ${filtrados.length} registros`;
+        }
+        
+        document.querySelectorAll(`#tabla${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)} tbody tr`).forEach(row => {
+            row.ondblclick = (e) => {
+                if(e.target.tagName === 'A') return;
+                const id = row.dataset.id;
+                if(id && PERMISOS.puedeEditar) window.editarRegistro(id);
+            };
+        });
     }
     
     window.cambiarPagina = (pagina) => {
-        paginaActual = pagina;
-        renderizarTabla();
+        const filtrados = filtrarDatos();
+        const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
+        if(pagina >= 1 && pagina <= totalPaginas) {
+            paginaActual = pagina;
+            renderizarTabla();
+        }
     };
     
-    async function guardarRegistro(tipo, registro) {
-        const url = `${API_URL}?accion=guardar&tipo=${tipo}&datos=${JSON.stringify(registro)}`;
-        const response = await fetch(url);
-        return await response.json();
+    function abrirFormulario(tipo, reg = null) {
+        tipoActual = tipo;
+        editandoId = reg?.id || null;
+        const modal = document.getElementById('modalFormulario');
+        const titulo = document.getElementById('modalTitulo');
+        const camposDiv = document.getElementById('formCampos');
+        
+        titulo.textContent = reg ? `✏️ Editar ${tipo.slice(0,-1)}` : `➕ Nuevo ${tipo.slice(0,-1)}`;
+        
+        let campos = [];
+        if(tipo === 'materiales') {
+            campos = [
+                { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
+                { name: 'unidad', label: 'Unidad (kg, m3, saco)', type: 'text', required: true },
+                { name: 'precio', label: 'Precio unitario ($)', type: 'number', required: true },
+                { name: 'proveedor', label: 'Proveedor (URL o texto)', type: 'text' }
+            ];
+        } else if(tipo === 'equipos') {
+            campos = [
+                { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
+                { name: 'unidad', label: 'Unidad (hora, día)', type: 'text', required: true },
+                { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
+                { name: 'ubicacion', label: 'Ubicación', type: 'select', options: ['taller', 'campo', 'ambos'], required: true }
+            ];
+        } else if(tipo === 'manoObra') {
+            campos = [
+                { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
+                { name: 'unidad', label: 'Unidad (hora, día, mes)', type: 'text', required: true },
+                { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
+                { name: 'ubicacion', label: 'Ubicación', type: 'select', options: ['taller', 'campo', 'ambos'], required: true }
+            ];
+        }
+        
+        camposDiv.innerHTML = campos.map(campo => {
+            let valor = reg ? reg[campo.name] || '' : '';
+            if(campo.type === 'select') {
+                return `
+                    <div class="campo-form">
+                        <label>${campo.label}</label>
+                        <select name="${campo.name}" ${campo.required ? 'required' : ''}>
+                            <option value="">Seleccionar</option>
+                            ${campo.options.map(opt => `<option value="${opt}" ${valor === opt ? 'selected' : ''}>${opt === 'taller' ? '🔧 Taller' : opt === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+            return `
+                <div class="campo-form">
+                    <label>${campo.label}</label>
+                    <input type="${campo.type}" name="${campo.name}" value="${valor}" ${campo.required ? 'required' : ''}>
+                </div>
+            `;
+        }).join('');
+        
+        modal.style.display = 'block';
     }
     
-    async function eliminarRegistro(tipo, id) {
-        const response = await fetch(`${API_URL}?accion=eliminar&tipo=${tipo}&id=${id}`);
-        return await response.json();
+    function cerrarModal() {
+        document.getElementById('modalFormulario').style.display = 'none';
+        editandoId = null;
+    }
+    
+    async function guardarFormulario(e) {
+        e.preventDefault();
+        const fd = new FormData(document.getElementById('formRegistro'));
+        const nuevo = {};
+        for(let [k,v] of fd) nuevo[k] = v;
+        
+        if(editandoId) {
+            nuevo.id = editandoId;
+            const idx = datos[tipoActual].findIndex(i => i.id === editandoId);
+            if(idx !== -1) {
+                datos[tipoActual][idx] = nuevo;
+                await guardarRegistroEnCloud(nuevo);
+            }
+        } else {
+            nuevo.id = generarId(tipoActual);
+            datos[tipoActual].push(nuevo);
+            await guardarRegistroEnCloud(nuevo);
+        }
+        await cargarDatos();
+        cerrarModal();
     }
     
     window.editarRegistro = (id) => {
-        alert('Función de edición en desarrollo');
+        const registro = datos[tipoActual].find(i => i.id === id);
+        if(registro) abrirFormulario(tipoActual, registro);
     };
     
     window.clonarRegistro = async (id) => {
+        if(!PERMISOS.puedeClonar) return alert('Sin permiso');
         const original = datos[tipoActual].find(i => i.id === id);
         if(original) {
             const clon = JSON.parse(JSON.stringify(original));
             delete clon.id;
-            clon.descripcion += ' (Copia)';
+            clon.descripcion = clon.descripcion + ' (Copia)';
             clon.id = generarId(tipoActual);
-            await guardarRegistro(tipoActual, clon);
+            await guardarRegistroEnCloud(clon);
             await cargarDatos();
-            alert('Clonado');
+            alert('✅ Registro clonado exitosamente');
         }
     };
     
     window.eliminarRegistro = async (id) => {
-        if(confirm('¿Eliminar?')) {
-            await eliminarRegistro(tipoActual, id);
+        if(!PERMISOS.puedeEliminar) return alert('❌ No tienes permiso para eliminar');
+        if(confirm('⚠️ ¿Estás seguro de eliminar este registro?')) {
+            await eliminarRegistroEnCloud(id);
             await cargarDatos();
         }
     };
     
-    function abrirFormulario(tipo) {
-        alert('Formulario en desarrollo');
-    }
-    
+    document.getElementById('formRegistro')?.addEventListener('submit', guardarFormulario);
+    document.getElementById('btnCancelar')?.addEventListener('click', cerrarModal);
     document.getElementById('btnNuevoMaterial')?.addEventListener('click', () => abrirFormulario('materiales'));
     document.getElementById('btnNuevoEquipo')?.addEventListener('click', () => abrirFormulario('equipos'));
     document.getElementById('btnNuevoManoObra')?.addEventListener('click', () => abrirFormulario('manoObra'));
@@ -231,6 +383,8 @@
             document.getElementById(`tab-${tipoActual}`).classList.add('active');
             paginaActual = 1;
             cargarDatos();
+            const inp = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+            if(inp) inp.oninput = () => { paginaActual = 1; renderizarTabla(); };
         };
     });
     
@@ -239,6 +393,7 @@
     });
     
     cargarDatos();
+})();
 </script>
 </body>
 </html>
