@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Mano de Obra</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #003B68; color: white; }
+        button { background: #27ae60; color: white; border: none; padding: 10px 20px; cursor: pointer; margin: 5px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 100px auto; padding: 20px; width: 400px; border-radius: 10px; }
+        input, select { width: 100%; padding: 8px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h2>👷 Prueba - Mano de Obra</h2>
+    <button id="btnNuevo">+ Nuevo</button>
+    <button id="btnRecargar">⟳ Recargar</button>
+    <div id="mensaje" style="color: green; margin: 10px 0;"></div>
+    <div id="tabla-container"></div>
+
+    <div id="modalForm" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitulo">Nuevo Registro</h3>
+            <input type="text" id="descripcion" placeholder="Descripción" required>
+            <input type="text" id="unidad" placeholder="Unidad (hora, día)" required>
+            <input type="number" id="precio" placeholder="Precio" required>
+            <select id="ubicacion">
+                <option value="taller">Taller</option>
+                <option value="campo">Campo</option>
+                <option value="ambos">Ambos</option>
+            </select>
+            <button id="btnGuardar">Guardar</button>
+            <button id="btnCancelar">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxtzThLpIglMqhgskt_3bYINfLLNJWNI8o6xWaL1ZiQpVkAk4trU2X8LcfXxj9pAluJug/exec';
+        let editandoId = null;
+        let contador = 1;
+
+        function mostrarMensaje(msg, error = false) {
+            const div = document.getElementById('mensaje');
+            div.textContent = msg;
+            div.style.color = error ? 'red' : 'green';
+            setTimeout(() => div.textContent = '', 3000);
+        }
+
+        async function cargarDatos() {
+            try {
+                const response = await fetch(`${API_URL}?accion=listar&tipo=mano_obra`);
+                const result = await response.json();
+                console.log('Datos cargados:', result);
+                
+                if (result.success && result.data.length > 0) {
+                    const ids = result.data.map(r => parseInt(r.id?.split('-')[1]) || 0);
+                    contador = Math.max(...ids, 0) + 1;
+                    renderizarTabla(result.data);
+                } else {
+                    renderizarTabla([]);
+                }
+            } catch(e) {
+                console.error('Error:', e);
+                document.getElementById('tabla-container').innerHTML = '<p style="color:red">Error de conexión</p>';
+            }
+        }
+
+        function renderizarTabla(datos) {
+            const container = document.getElementById('tabla-container');
+            if (datos.length === 0) {
+                container.innerHTML = '<p>No hay registros. Haz clic en "+ Nuevo" para agregar.</p>';
+                return;
+            }
+            
+            let html = '<table><thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead><tbody>';
+            datos.forEach(item => {
+                html += `<tr>
+                    <td>${item.id}</td>
+                    <td>${item.descripcion || ''}</td>
+                    <td>${item.unidad || ''}</td>
+                    <td>$${item.precio || 0}</td>
+                    <td>${item.ubicacion === 'taller' ? '🔧 Taller' : item.ubicacion === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</td>
+                    <td>
+                        <button onclick="editarRegistro('${item.id}')">✏️</button>
+                        <button onclick="eliminarRegistro('${item.id}')">🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function guardarRegistro() {
+            const descripcion = document.getElementById('descripcion').value;
+            const unidad = document.getElementById('unidad').value;
+            const precio = document.getElementById('precio').value;
+            const ubicacion = document.getElementById('ubicacion').value;
+
+            if (!descripcion || !unidad || !precio) {
+                mostrarMensaje('Complete todos los campos', true);
+                return;
+            }
+
+            const nuevo = {
+                id: editandoId || `MDO-${contador.toString().padStart(3, '0')}`,
+                descripcion: descripcion,
+                unidad: unidad,
+                precio: parseFloat(precio),
+                ubicacion: ubicacion
+            };
+
+            try {
+                const url = `${API_URL}?accion=guardar&tipo=mano_obra&datos=${JSON.stringify(nuevo)}`;
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    mostrarMensaje('Guardado exitoso');
+                    if (!editandoId) contador++;
+                    cerrarModal();
+                    cargarDatos();
+                } else {
+                    mostrarMensaje('Error al guardar', true);
+                }
+            } catch(e) {
+                mostrarMensaje('Error de conexión', true);
+            }
+        }
+
+        async function eliminarRegistro(id) {
+            if (!confirm('¿Eliminar este registro?')) return;
+            try {
+                const response = await fetch(`${API_URL}?accion=eliminar&tipo=mano_obra&id=${id}`);
+                const result = await response.json();
+                if (result.success) {
+                    mostrarMensaje('Eliminado');
+                    cargarDatos();
+                } else {
+                    mostrarMensaje('Error al eliminar', true);
+                }
+            } catch(e) {
+                mostrarMensaje('Error de conexión', true);
+            }
+        }
+
+        function editarRegistro(id) {
+            mostrarMensaje('Función de edición pendiente');
+        }
+
+        function abrirModal() {
+            document.getElementById('modalForm').style.display = 'block';
+            editandoId = null;
+            document.getElementById('descripcion').value = '';
+            document.getElementById('unidad').value = '';
+            document.getElementById('precio').value = '';
+            document.getElementById('ubicacion').value = 'ambos';
+            document.getElementById('modalTitulo').textContent = 'Nuevo Registro';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modalForm').style.display = 'none';
+            editandoId = null;
+        }
+
+        document.getElementById('btnNuevo').onclick = abrirModal;
+        document.getElementById('btnRecargar').onclick = cargarDatos;
+        document.getElementById('btnGuardar').onclick = guardarRegistro;
+        document.getElementById('btnCancelar').onclick = cerrarModal;
+
+        cargarDatos();
+    </script>
+</body>
+</html>
