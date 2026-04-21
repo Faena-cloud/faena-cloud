@@ -62,42 +62,18 @@
         <button class="tab-btn" data-tab="manoObra">👷 Mano de Obra</button>
     </div>
     <div id="tab-materiales" class="tab-content active">
-        <div class="barra">
-            <input type="text" id="buscarMateriales" placeholder="🔍 Buscar...">
-            <button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button>
-        </div>
-        <div class="tabla-container">
-            <table id="tablaMateriales">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th></tr></thead>
-                <tbody id="tbodyMateriales"></tbody>
-            </table>
-        </div>
+        <div class="barra"><input type="text" id="buscarMateriales" placeholder="🔍 Buscar..."><button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button></div>
+        <div class="tabla-container"><table id="tablaMateriales"><thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th></tr></thead><tbody id="tbodyMateriales"></tbody></table></div>
         <div id="paginacionMateriales" class="paginacion"></div>
     </div>
     <div id="tab-equipos" class="tab-content">
-        <div class="barra">
-            <input type="text" id="buscarEquipos" placeholder="🔍 Buscar...">
-            <button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button>
-        </div>
-        <div class="tabla-container">
-            <table id="tablaEquipos">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead>
-                <tbody id="tbodyEquipos"></tbody>
-            </table>
-        </div>
+        <div class="barra"><input type="text" id="buscarEquipos" placeholder="🔍 Buscar..."><button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button></div>
+        <div class="tabla-container"><table id="tablaEquipos"><thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead><tbody id="tbodyEquipos"></tbody></table></div>
         <div id="paginacionEquipos" class="paginacion"></div>
     </div>
     <div id="tab-manoObra" class="tab-content">
-        <div class="barra">
-            <input type="text" id="buscarManoObra" placeholder="🔍 Buscar...">
-            <button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button>
-        </div>
-        <div class="tabla-container">
-            <table id="tablaManoObra">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead>
-                <tbody id="tbodyManoObra"></tbody>
-            </table>
-        </div>
+        <div class="barra"><input type="text" id="buscarManoObra" placeholder="🔍 Buscar..."><button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button></div>
+        <div class="tabla-container"><table id="tablaManoObra"><thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead><tbody id="tbodyManoObra"></tbody></table></div>
         <div id="paginacionManoObra" class="paginacion"></div>
     </div>
 </div>
@@ -209,7 +185,7 @@
                 if(tipoActual === 'materiales') {
                     const proveedor = item.proveedor || '';
                     const esLink = proveedor.match(/^https?:\/\//i);
-                    row += `<td>${esLink ? `<a href="${proveedor}" target="_blank" class="link-proveedor" ondblclick="event.stopPropagation()">${proveedor}</a>` : proveedor}</td>`;
+                    row += `<td>${esLink ? `<a href="${proveedor}" target="_blank" class="link-proveedor">${proveedor}</a>` : proveedor}</td>`;
                 } else {
                     const ubi = item.ubicacion || 'ambos';
                     row += `<td><span class="badge ${ubi}">${ubi === 'taller' ? '🔧 Taller' : ubi === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
@@ -235,20 +211,18 @@
             `;
         }
         
-        // Doble clic para editar
-       // Doble clic para editar (usando event delegation)
-const tbodyElement = document.getElementById(`tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-if(tbodyElement) {
-    tbodyElement.ondblclick = (e) => {
-        // Buscar la fila más cercana (tr)
-        const row = e.target.closest('tr');
-        if(!row) return;
-        // Si el clic fue en un enlace, no hacer nada
-        if(e.target.tagName === 'A') return;
-        const id = row.dataset.id;
-        if(id && PERMISOS.puedeEditar) window.editarRegistro(id);
-    };
-}
+        // Doble clic para editar (event delegation)
+        const tbodyElement = document.getElementById(`tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+        if(tbodyElement) {
+            tbodyElement.ondblclick = (e) => {
+                const row = e.target.closest('tr');
+                if(!row) return;
+                if(e.target.tagName === 'A') return;
+                const id = row.dataset.id;
+                if(id && PERMISOS.puedeEditar) window.editarRegistro(id);
+            };
+        }
+    }
     
     window.cambiarPagina = (pagina) => {
         const filtrados = filtrarDatos();
