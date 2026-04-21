@@ -34,8 +34,7 @@
         .btn-delete { background: #e74c3c; color: white; }
         .paginacion { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
         .paginacion button { padding: 8px 15px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer; }
-        .paginacion button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow: auto; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
         .modal-content { background: white; max-width: 500px; margin: 50px auto; border-radius: 20px; padding: 25px; }
         .form-grid { display: grid; gap: 15px; }
         .campo-form { display: flex; flex-direction: column; }
@@ -44,7 +43,6 @@
         .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .btn-guardar { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
         .btn-cancelar { background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
-        .link-proveedor { color: #3498db; text-decoration: underline; cursor: pointer; }
         @media (max-width: 768px) {
             th, td { padding: 8px 6px; font-size: 12px; }
             .btn-accion { padding: 3px 6px; font-size: 10px; }
@@ -62,42 +60,27 @@
         <button class="tab-btn" data-tab="equipos">🔧 Equipos</button>
         <button class="tab-btn" data-tab="manoObra">👷 Mano de Obra</button>
     </div>
+    
     <div id="tab-materiales" class="tab-content active">
-        <div class="barra">
-            <input type="text" id="buscarMateriales" placeholder="🔍 Buscar...">
-            <button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button>
-        </div>
+        <div class="barra"><input type="text" id="buscarMateriales" placeholder="🔍 Buscar..."><button id="btnNuevoMaterial" class="btn-nuevo">+ Nuevo Material</button></div>
         <div class="tabla-container">
-            <table id="tablaMateriales">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th></tr></thead>
-                <tbody id="tbodyMateriales"></tbody>
-            </table>
+            <table id="tablaMateriales"><thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Proveedor</th><th>Acciones</th></tr></thead><tbody id="tbodyMateriales"></tbody></table>
         </div>
         <div id="paginacionMateriales" class="paginacion"></div>
     </div>
+    
     <div id="tab-equipos" class="tab-content">
-        <div class="barra">
-            <input type="text" id="buscarEquipos" placeholder="🔍 Buscar...">
-            <button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button>
-        </div>
+        <div class="barra"><input type="text" id="buscarEquipos" placeholder="🔍 Buscar..."><button id="btnNuevoEquipo" class="btn-nuevo">+ Nuevo Equipo</button></div>
         <div class="tabla-container">
-            <table id="tablaEquipos">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead>
-                <tbody id="tbodyEquipos"></tbody>
-            </table>
+            <table id="tablaEquipos"><thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead><tbody id="tbodyEquipos"></tbody></table>
         </div>
         <div id="paginacionEquipos" class="paginacion"></div>
     </div>
+    
     <div id="tab-manoObra" class="tab-content">
-        <div class="barra">
-            <input type="text" id="buscarManoObra" placeholder="🔍 Buscar...">
-            <button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button>
-        </div>
+        <div class="barra"><input type="text" id="buscarManoObra" placeholder="🔍 Buscar..."><button id="btnNuevoManoObra" class="btn-nuevo">+ Nueva Mano de Obra</button></div>
         <div class="tabla-container">
-            <table id="tablaManoObra">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead>
-                <tbody id="tbodyManoObra"></tbody>
-            </table>
+            <table id="tablaManoObra"><thead><tr><th>ID</th><th>Descripción</th><th>Unidad</th><th>Precio</th><th>Ubicación</th><th>Acciones</th></tr></thead><tbody id="tbodyManoObra"></tbody></table>
         </div>
         <div id="paginacionManoObra" class="paginacion"></div>
     </div>
@@ -117,285 +100,240 @@
 </div>
 
 <script>
-(function(){
-    const API_URL = 'https://script.google.com/macros/s/AKfycbx6FOASz5aFH_Yct60D8KMxEskli9LcIcw80zhyuA46RR8zYSz5k83FGx4CmeL3NN0yDA/exec';
-    
-    const sesionData = sessionStorage.getItem('faena_sesion');
-    const rolUsuario = sesionData ? JSON.parse(sesionData).rol : 1;
-    const PERMISOS = { puedeCrear: true, puedeEditar: true, puedeClonar: true, puedeEliminar: rolUsuario >= 2 };
-    
-    let datos = { materiales: [], equipos: [], manoObra: [] };
-    let tipoActual = 'materiales';
-    let editandoId = null;
-    let contadores = { materiales: 1, equipos: 1, manoObra: 1 };
-    let paginaActual = { materiales: 1, equipos: 1, manoObra: 1 };
-    const registrosPorPagina = 15;
-    
-    function generarId(tipo) {
-        const prefijos = { materiales: 'MAT', equipos: 'EQU', manoObra: 'MDO' };
-        const num = contadores[tipo].toString().padStart(3, '0');
-        return `${prefijos[tipo]}-${num}`;
-    }
-    
-    async function cargarDatos() {
-        try {
-            const response = await fetch(`${API_URL}?accion=listar&tipo=${tipoActual}`);
-            const result = await response.json();
-            if (result.success) {
-                datos[tipoActual] = result.data;
-                const ids = result.data.map(r => parseInt(r.id?.split('-')[1]) || 0);
-                contadores[tipoActual] = Math.max(...ids, 0) + 1;
-            } else {
-                datos[tipoActual] = [];
-            }
-        } catch(e) {
-            console.error('Error al cargar:', e);
+// ========== CONFIGURACIÓN ==========
+const API_URL = 'https://script.google.com/macros/s/AKfycbx6FOASz5aFH_Yct60D8KMxEskli9LcIcw80zhyuA46RR8zYSz5k83FGx4CmeL3NN0yDA/exec';
+
+let tipoActual = 'materiales';
+let datos = { materiales: [], equipos: [], manoObra: [] };
+let editandoId = null;
+let contadores = { materiales: 1, equipos: 1, manoObra: 1 };
+let pagina = { materiales: 1, equipos: 1, manoObra: 1 };
+const POR_PAGINA = 15;
+
+// ========== FUNCIONES ==========
+function generarId(tipo) {
+    const prefijos = { materiales: 'MAT', equipos: 'EQU', manoObra: 'MDO' };
+    const num = contadores[tipo].toString().padStart(3, '0');
+    contadores[tipo]++;
+    return `${prefijos[tipo]}-${num}`;
+}
+
+async function cargarDatos() {
+    try {
+        const url = `${API_URL}?accion=listar&tipo=${tipoActual}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.success) {
+            datos[tipoActual] = result.data || [];
+            // Actualizar contador
+            const ids = datos[tipoActual].map(r => parseInt(r.id?.split('-')[1]) || 0);
+            contadores[tipoActual] = Math.max(...ids, 0) + 1;
+        } else {
             datos[tipoActual] = [];
         }
-        paginaActual[tipoActual] = 1;
-        renderizarTabla();
+    } catch(e) {
+        console.error('Error:', e);
+        datos[tipoActual] = [];
     }
+    renderizarTabla();
+}
+
+function renderizarTabla() {
+    const lista = datos[tipoActual] || [];
+    const busqueda = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`)?.value.toLowerCase() || '';
+    const filtrados = busqueda ? lista.filter(i => i.descripcion?.toLowerCase().includes(busqueda)) : lista;
     
-    async function guardarRegistroEnCloud(registro) {
-        try {
-            const response = await fetch(`${API_URL}?accion=guardar&tipo=${tipoActual}&datos=${JSON.stringify(registro)}`);
-            const result = await response.json();
-            return result.success;
-        } catch(e) {
-            console.error('Error al guardar:', e);
-            return false;
-        }
-    }
+    const totalPaginas = Math.ceil(filtrados.length / POR_PAGINA);
+    const inicio = (pagina[tipoActual] - 1) * POR_PAGINA;
+    const paginados = filtrados.slice(inicio, inicio + POR_PAGINA);
     
-    async function eliminarRegistroEnCloud(id) {
-        if(!PERMISOS.puedeEliminar) return false;
-        try {
-            const response = await fetch(`${API_URL}?accion=eliminar&tipo=${tipoActual}&id=${id}`);
-            const result = await response.json();
-            return result.success;
-        } catch(e) {
-            console.error('Error al eliminar:', e);
-            return false;
-        }
-    }
+    const tbody = document.getElementById(`tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+    if (!tbody) return;
     
-    function filtrarDatos() {
-        const busca = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`)?.value.toLowerCase() || '';
-        if(!busca) return datos[tipoActual];
-        return datos[tipoActual].filter(item => 
-            item.descripcion?.toLowerCase().includes(busca) || 
-            item.proveedor?.toLowerCase().includes(busca)
-        );
-    }
-    
-    function renderizarTabla() {
-        const filtrados = filtrarDatos();
-        const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
-        const inicio = (paginaActual[tipoActual] - 1) * registrosPorPagina;
-        const paginados = filtrados.slice(inicio, inicio + registrosPorPagina);
-        
-        const tbody = document.getElementById(`tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-        if(!tbody) return;
-        
-        if(paginados.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">No hay registros. Haz clic en "+ Nuevo" para agregar.</td></tr>';
-        } else {
-            tbody.innerHTML = paginados.map(item => {
-                let row = `<tr data-id="${item.id}">`;
-                row += `<td>${item.id}</td>`;
-                row += `<td>${item.descripcion || ''}</td>`;
-                row += `<td>${item.unidad || ''}</td>`;
-                row += `<td>$${item.precio || 0}</td>`;
-                if(tipoActual === 'materiales') {
-                    const proveedor = item.proveedor || '';
-                    const esLink = proveedor.match(/^https?:\/\//i);
-                    row += `<td>${esLink ? `<a href="${proveedor}" target="_blank" class="link-proveedor" ondblclick="event.stopPropagation()">${proveedor}</a>` : proveedor}</td>`;
-                } else {
-                    const ubi = item.ubicacion || 'ambos';
-                    row += `<td><span class="badge ${ubi}">${ubi === 'taller' ? '🔧 Taller' : ubi === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
-                }
-                row += `<td class="acciones">
-                    <button class="btn-accion btn-edit" onclick="event.stopPropagation(); window.editarRegistro('${item.id}')" ${!PERMISOS.puedeEditar?'disabled':''}>✏️</button>
-                    <button class="btn-accion btn-clone" onclick="event.stopPropagation(); window.clonarRegistro('${item.id}')" ${!PERMISOS.puedeClonar?'disabled':''}>📋</button>
-                    <button class="btn-accion btn-delete" onclick="event.stopPropagation(); window.eliminarRegistro('${item.id}')" ${!PERMISOS.puedeEliminar?'disabled':''}>🗑️</button>
-                </td>`;
-                row += `</tr>`;
-                return row;
-            }).join('');
-        }
-        
-        const pagDiv = document.getElementById(`paginacion${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-        if(pagDiv) {
-            pagDiv.innerHTML = `
-                <button onclick="cambiarPagina(1)" ${paginaActual[tipoActual] === 1 ? 'disabled' : ''}>⏮ Primera</button>
-                <button onclick="cambiarPagina(${paginaActual[tipoActual]-1})" ${paginaActual[tipoActual] === 1 ? 'disabled' : ''}>◀ Anterior</button>
-                <span style="padding: 8px 15px;">Página ${paginaActual[tipoActual]} de ${totalPaginas || 1}</span>
-                <button onclick="cambiarPagina(${paginaActual[tipoActual]+1})" ${paginaActual[tipoActual] === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Siguiente ▶</button>
-                <button onclick="cambiarPagina(${totalPaginas})" ${paginaActual[tipoActual] === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Última ⏩</button>
-            `;
-        }
-        
-        document.querySelectorAll(`#tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)} tr`).forEach(row => {
-            row.ondblclick = (e) => {
-                if(e.target.tagName === 'A') return;
-                const id = row.dataset.id;
-                if(id && PERMISOS.puedeEditar) window.editarRegistro(id);
-            };
-        });
-    }
-    
-    window.cambiarPagina = (pagina) => {
-        const filtrados = filtrarDatos();
-        const totalPaginas = Math.ceil(filtrados.length / registrosPorPagina);
-        if(pagina >= 1 && pagina <= totalPaginas) {
-            paginaActual[tipoActual] = pagina;
-            renderizarTabla();
-        }
-    };
-    
-    function abrirFormulario(tipo, reg=null) {
-        tipoActual = tipo;
-        editandoId = reg?.id || null;
-        const modal = document.getElementById('modalFormulario');
-        const titulo = document.getElementById('modalTitulo');
-        const camposDiv = document.getElementById('formCampos');
-        
-        titulo.textContent = reg ? `✏️ Editar ${tipo.slice(0,-1)}` : `➕ Nuevo ${tipo.slice(0,-1)}`;
-        
-        let campos = [];
-        if(tipo === 'materiales') {
-            campos = [
-                { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
-                { name: 'unidad', label: 'Unidad (kg, m3, saco)', type: 'text', required: true },
-                { name: 'precio', label: 'Precio unitario ($)', type: 'number', required: true },
-                { name: 'proveedor', label: 'Proveedor (URL o texto)', type: 'text' }
-            ];
-        } else if(tipo === 'equipos') {
-            campos = [
-                { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
-                { name: 'unidad', label: 'Unidad (hora, día)', type: 'text', required: true },
-                { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
-                { name: 'ubicacion', label: 'Ubicación', type: 'select', options: ['taller', 'campo', 'ambos'], required: true }
-            ];
-        } else {
-            campos = [
-                { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
-                { name: 'unidad', label: 'Unidad (hora, día, mes)', type: 'text', required: true },
-                { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
-                { name: 'ubicacion', label: 'Ubicación', type: 'select', options: ['taller', 'campo', 'ambos'], required: true }
-            ];
-        }
-        
-        camposDiv.innerHTML = campos.map(campo => {
-            let valor = reg ? reg[campo.name] || '' : '';
-            if(campo.type === 'select') {
-                return `
-                    <div class="campo-form">
-                        <label>${campo.label}</label>
-                        <select name="${campo.name}" ${campo.required ? 'required' : ''}>
-                            <option value="">Seleccionar</option>
-                            ${campo.options.map(opt => `<option value="${opt}" ${valor === opt ? 'selected' : ''}>${opt === 'taller' ? '🔧 Taller' : opt === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</option>`).join('')}
-                        </select>
-                    </div>
-                `;
+    if (paginados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">No hay registros. Haz clic en "+ Nuevo" para agregar.</td></tr>';
+    } else {
+        tbody.innerHTML = paginados.map(item => {
+            let html = `<tr data-id="${item.id}">`;
+            html += `<td>${item.id || ''}</td>`;
+            html += `<td>${item.descripcion || ''}</td>`;
+            html += `<td>${item.unidad || ''}</td>`;
+            html += `<td>$${item.precio || 0}</td>`;
+            if (tipoActual === 'materiales') {
+                html += `<td>${item.proveedor || ''}</td>`;
+            } else {
+                const ubi = item.ubicacion || 'ambos';
+                html += `<td><span class="badge ${ubi}">${ubi === 'taller' ? '🔧 Taller' : ubi === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</span></td>`;
             }
+            html += `<td class="acciones">
+                <button class="btn-accion btn-edit" onclick="editarRegistro('${item.id}')">✏️</button>
+                <button class="btn-accion btn-clone" onclick="clonarRegistro('${item.id}')">📋</button>
+                <button class="btn-accion btn-delete" onclick="eliminarRegistro('${item.id}')">🗑️</button>
+            </td>`;
+            html += `</tr>`;
+            return html;
+        }).join('');
+    }
+    
+    const pagDiv = document.getElementById(`paginacion${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+    if (pagDiv) {
+        pagDiv.innerHTML = `
+            <button onclick="cambiarPagina(1)" ${pagina[tipoActual] === 1 ? 'disabled' : ''}>⏮ Primera</button>
+            <button onclick="cambiarPagina(${pagina[tipoActual]-1})" ${pagina[tipoActual] === 1 ? 'disabled' : ''}>◀ Anterior</button>
+            <span style="padding: 8px 15px;">Página ${pagina[tipoActual]} de ${totalPaginas || 1}</span>
+            <button onclick="cambiarPagina(${pagina[tipoActual]+1})" ${pagina[tipoActual] === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Siguiente ▶</button>
+            <button onclick="cambiarPagina(${totalPaginas})" ${pagina[tipoActual] === totalPaginas || totalPaginas === 0 ? 'disabled' : ''}>Última ⏩</button>
+        `;
+    }
+}
+
+window.cambiarPagina = (p) => {
+    pagina[tipoActual] = p;
+    renderizarTabla();
+};
+
+async function guardarRegistroEnCloud(registro) {
+    const url = `${API_URL}?accion=guardar&tipo=${tipoActual}&datos=${JSON.stringify(registro)}`;
+    const response = await fetch(url);
+    return await response.json();
+}
+
+async function eliminarRegistroEnCloud(id) {
+    const url = `${API_URL}?accion=eliminar&tipo=${tipoActual}&id=${id}`;
+    const response = await fetch(url);
+    return await response.json();
+}
+
+function abrirFormulario(reg = null) {
+    editandoId = reg?.id || null;
+    const modal = document.getElementById('modalFormulario');
+    const titulo = document.getElementById('modalTitulo');
+    const camposDiv = document.getElementById('formCampos');
+    
+    titulo.textContent = reg ? '✏️ Editar registro' : '➕ Nuevo registro';
+    
+    let campos = [];
+    if (tipoActual === 'materiales') {
+        campos = [
+            { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
+            { name: 'unidad', label: 'Unidad', type: 'text', required: true },
+            { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
+            { name: 'proveedor', label: 'Proveedor', type: 'text' }
+        ];
+    } else if (tipoActual === 'equipos') {
+        campos = [
+            { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
+            { name: 'unidad', label: 'Unidad', type: 'text', required: true },
+            { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
+            { name: 'ubicacion', label: 'Ubicación', type: 'select', options: ['taller', 'campo', 'ambos'], required: true }
+        ];
+    } else {
+        campos = [
+            { name: 'descripcion', label: 'Descripción', type: 'text', required: true },
+            { name: 'unidad', label: 'Unidad', type: 'text', required: true, value: 'hora' },
+            { name: 'precio', label: 'Precio ($)', type: 'number', required: true },
+            { name: 'ubicacion', label: 'Ubicación', type: 'select', options: ['taller', 'campo', 'ambos'], required: true }
+        ];
+    }
+    
+    camposDiv.innerHTML = campos.map(campo => {
+        let valor = reg ? reg[campo.name] || '' : (campo.value || '');
+        if (campo.type === 'select') {
             return `
                 <div class="campo-form">
                     <label>${campo.label}</label>
-                    <input type="${campo.type}" name="${campo.name}" value="${valor}" ${campo.required ? 'required' : ''}>
+                    <select name="${campo.name}" required>
+                        <option value="">Seleccionar</option>
+                        ${campo.options.map(opt => `<option value="${opt}" ${valor === opt ? 'selected' : ''}>${opt === 'taller' ? '🔧 Taller' : opt === 'campo' ? '🌾 Campo' : '🔄 Ambos'}</option>`).join('')}
+                    </select>
                 </div>
             `;
-        }).join('');
-        
-        modal.style.display = 'block';
-    }
-    
-    function cerrarModal() {
-        document.getElementById('modalFormulario').style.display = 'none';
-        editandoId = null;
-    }
-    
-    async function guardarFormulario(e) {
-        e.preventDefault();
-        const fd = new FormData(document.getElementById('formRegistro'));
-        const nuevo = {};
-        for(let [k,v] of fd) nuevo[k] = v;
-        
-        if(editandoId) {
-            nuevo.id = editandoId;
-            const idx = datos[tipoActual].findIndex(i => i.id === editandoId);
-            if(idx !== -1) {
-                datos[tipoActual][idx] = nuevo;
-                await guardarRegistroEnCloud(nuevo);
-            }
-        } else {
-            nuevo.id = generarId(tipoActual);
-            datos[tipoActual].push(nuevo);
-            await guardarRegistroEnCloud(nuevo);
-            contadores[tipoActual]++;
         }
+        return `
+            <div class="campo-form">
+                <label>${campo.label}</label>
+                <input type="${campo.type}" name="${campo.name}" value="${valor}" ${campo.required ? 'required' : ''}>
+            </div>
+        `;
+    }).join('');
+    
+    modal.style.display = 'block';
+}
+
+function cerrarModal() {
+    document.getElementById('modalFormulario').style.display = 'none';
+    editandoId = null;
+}
+
+async function guardarFormulario(e) {
+    e.preventDefault();
+    const fd = new FormData(document.getElementById('formRegistro'));
+    const nuevo = {};
+    for (let [k, v] of fd) nuevo[k] = v;
+    
+    if (editandoId) {
+        nuevo.id = editandoId;
+        const idx = datos[tipoActual].findIndex(i => i.id === editandoId);
+        if (idx !== -1) datos[tipoActual][idx] = nuevo;
+    } else {
+        nuevo.id = generarId(tipoActual);
+        datos[tipoActual].push(nuevo);
+    }
+    
+    await guardarRegistroEnCloud(nuevo);
+    await cargarDatos();
+    cerrarModal();
+}
+
+window.editarRegistro = (id) => {
+    const registro = datos[tipoActual].find(i => i.id === id);
+    if (registro) abrirFormulario(registro);
+};
+
+window.clonarRegistro = async (id) => {
+    const original = datos[tipoActual].find(i => i.id === id);
+    if (original) {
+        const clon = JSON.parse(JSON.stringify(original));
+        delete clon.id;
+        clon.descripcion = clon.descripcion + ' (Copia)';
+        clon.id = generarId(tipoActual);
+        await guardarRegistroEnCloud(clon);
         await cargarDatos();
-        cerrarModal();
+        alert('✅ Clonado');
     }
-    
-    window.editarRegistro = (id) => {
-        const registro = datos[tipoActual].find(i => i.id === id);
-        if(registro) abrirFormulario(tipoActual, registro);
+};
+
+window.eliminarRegistro = async (id) => {
+    if (!confirm('¿Eliminar este registro?')) return;
+    await eliminarRegistroEnCloud(id);
+    await cargarDatos();
+};
+
+// ========== EVENTOS ==========
+document.getElementById('formRegistro')?.addEventListener('submit', guardarFormulario);
+document.getElementById('btnCancelar')?.addEventListener('click', cerrarModal);
+document.getElementById('btnNuevoMaterial')?.addEventListener('click', () => { tipoActual = 'materiales'; abrirFormulario(); });
+document.getElementById('btnNuevoEquipo')?.addEventListener('click', () => { tipoActual = 'equipos'; abrirFormulario(); });
+document.getElementById('btnNuevoManoObra')?.addEventListener('click', () => { tipoActual = 'manoObra'; abrirFormulario(); });
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        tipoActual = btn.dataset.tab;
+        document.getElementById(`tab-${tipoActual}`).classList.add('active');
+        pagina[tipoActual] = 1;
+        cargarDatos();
+        const inp = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+        if (inp) inp.oninput = () => { pagina[tipoActual] = 1; renderizarTabla(); };
     };
-    
-    window.clonarRegistro = async (id) => {
-        if(!PERMISOS.puedeClonar) return alert('Sin permiso');
-        const original = datos[tipoActual].find(i => i.id === id);
-        if(original) {
-            const clon = JSON.parse(JSON.stringify(original));
-            delete clon.id;
-            clon.descripcion = clon.descripcion + ' (Copia)';
-            clon.id = generarId(tipoActual);
-            await guardarRegistroEnCloud(clon);
-            await cargarDatos();
-            alert('✅ Registro clonado exitosamente');
-        }
-    };
-    
-    window.eliminarRegistro = async (id) => {
-        if(!PERMISOS.puedeEliminar) return alert('❌ No tienes permiso para eliminar');
-        if(confirm('⚠️ ¿Estás seguro de eliminar este registro?')) {
-            await eliminarRegistroEnCloud(id);
-            await cargarDatos();
-        }
-    };
-    
-    document.getElementById('formRegistro')?.addEventListener('submit', guardarFormulario);
-    document.getElementById('btnCancelar')?.addEventListener('click', cerrarModal);
-    document.getElementById('btnNuevoMaterial')?.addEventListener('click', () => abrirFormulario('materiales'));
-    document.getElementById('btnNuevoEquipo')?.addEventListener('click', () => abrirFormulario('equipos'));
-    document.getElementById('btnNuevoManoObra')?.addEventListener('click', () => abrirFormulario('manoObra'));
-    
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            tipoActual = btn.dataset.tab;
-            document.getElementById(`tab-${tipoActual}`).classList.add('active');
-            cargarDatos();
-            const inp = document.getElementById(`buscar${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
-            if(inp) inp.oninput = () => {
-                paginaActual[tipoActual] = 1;
-                renderizarTabla();
-            };
-        };
-    });
-    
-    document.querySelectorAll('.barra input').forEach(i => {
-        if(i) i.oninput = () => {
-            paginaActual[tipoActual] = 1;
-            renderizarTabla();
-        };
-    });
-    
-    cargarDatos();
-})();
+});
+
+// Inicializar
+tipoActual = 'materiales';
+cargarDatos();
 </script>
 </body>
 </html>
