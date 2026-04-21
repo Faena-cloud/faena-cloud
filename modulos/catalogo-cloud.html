@@ -236,14 +236,19 @@
         }
         
         // Doble clic para editar
-        document.querySelectorAll(`#tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)} tr`).forEach(row => {
-            row.ondblclick = (e) => {
-                if(e.target.tagName === 'A') return;
-                const id = row.dataset.id;
-                if(id && PERMISOS.puedeEditar) window.editarRegistro(id);
-            };
-        });
-    }
+       // Doble clic para editar (usando event delegation)
+const tbodyElement = document.getElementById(`tbody${tipoActual.charAt(0).toUpperCase() + tipoActual.slice(1)}`);
+if(tbodyElement) {
+    tbodyElement.ondblclick = (e) => {
+        // Buscar la fila más cercana (tr)
+        const row = e.target.closest('tr');
+        if(!row) return;
+        // Si el clic fue en un enlace, no hacer nada
+        if(e.target.tagName === 'A') return;
+        const id = row.dataset.id;
+        if(id && PERMISOS.puedeEditar) window.editarRegistro(id);
+    };
+}
     
     window.cambiarPagina = (pagina) => {
         const filtrados = filtrarDatos();
